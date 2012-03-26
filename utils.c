@@ -313,7 +313,7 @@ void comp_to_coord (move_s move, char str[]) {
   int prom, from, target, f_rank, t_rank, converter;
   char f_file, t_file;
 
-  char type_to_char[] = { 'F', 'P', 'p', 'N', 'n', 'K', 'k', 'R', 'r', 'Q', 'q', 'B', 'b', 'E' };
+  char type_to_char[] = { 'F', 'P', 'P', 'N', 'N', 'K', 'K', 'R', 'R', 'Q', 'Q', 'B', 'B', 'E' };
 
   prom = move.promoted;
   from = move.from;
