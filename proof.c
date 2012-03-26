@@ -36,10 +36,14 @@
 /* we can exceed PBSize before exiting the main search loop */
 #define SAFETY     10000
 
+
+/* define this to use the pn^2 search */
+#undef PN2
+
 int nodecount;
 int nodecount2;
 int pn2;
-long long frees;
+long frees;
 int iters;
 int maxply;
 int ply;
@@ -48,6 +52,9 @@ move_s pn_move;
 move_s pn_saver;
 
 bool kibitzed;
+int forcedwin;
+
+int rootlosers[MOVE_BUFF];
 
 typedef struct node
   {
@@ -66,8 +73,7 @@ node_t;
 void pn2_eval (node_t *node);
 void suicide_pn_eval (node_t *this);
 void std_pn_eval (node_t *this);
-
-unsigned long p_rep_list[8192];
+void losers_pn_eval (node_t *this);
 
 unsigned char *membuff;
 int bufftop = 0;
@@ -117,15 +123,18 @@ void pn_eval(node_t * this)
     {    
       suicide_pn_eval(this);
     }
- else 
-   {
-     std_pn_eval(this);
-   }
+  else if (Variant == Losers)
+    {
+      losers_pn_eval(this);
+    }
+  else  
+    {
+      std_pn_eval(this);
+    }
 }
 
 void std_pn_eval (node_t * this)
 {
-  int ep_temp;
   int num_moves;
   move_s moves[MOVE_BUFF];
   int mate;
@@ -133,7 +142,7 @@ void std_pn_eval (node_t * this)
 
   this->evaluated = TRUE;
 
-  ep_temp = ep_square;
+  //ep_temp = ep_square;
 
   if ((white_to_move && is_attacked (wking_loc, WHITE))
       || (!white_to_move && is_attacked (bking_loc, BLACK)))
@@ -150,7 +159,7 @@ void std_pn_eval (node_t * this)
 	  make (&moves[0], i);
 
 	  /* check to see if our move is legal: */
-	  if (check_legal (&moves[0], i))
+	  if (check_legal (&moves[0], i, TRUE))
 	    {
 	      mate = FALSE;
 	      unmake (&moves[0], i);
@@ -183,7 +192,7 @@ void std_pn_eval (node_t * this)
       this->value = UNKNOWN;
     };
 
-  ep_square = ep_temp;
+  //ep_square = ep_temp;
 
 };
 
@@ -255,6 +264,154 @@ void suicide_pn_eval(node_t *this)
     };  
 };
 
+void losers_pn_eval(node_t *this)
+{
+  int num_moves;
+  move_s moves[MOVE_BUFF];
+  int mate;
+  int i;
+  int j, a;
+  int wp = 0, bp = 0;
+
+  this->evaluated = TRUE;
+
+  //ep_temp = ep_square;
+  
+  for (j = 1, a = 1; (a <= piece_count); j++) 
+    {
+      i = pieces[j];
+      
+      if (!i)
+	continue;
+      else
+	a++;
+      
+      switch (board[i])
+	{
+	case wpawn:
+	case wbishop:
+	case wrook:
+	case wqueen:
+	case wknight: wp++; break;
+	case bpawn:
+	case bbishop:
+	case brook:
+	case bqueen:
+	case bknight: bp++; break;
+	}
+  
+      if (wp && bp) break;
+    }
+  
+
+  if (!wp)
+    {
+      /* proven or disproven */
+      if (!root_to_move)
+	{
+	  /* root mover is mated-> disproven */
+	  this->value = TRUE;
+	}
+      else
+	{
+	  this->value = FALSE;
+	};
+      return;
+    }
+  else if (!bp)
+    {
+      if (root_to_move)
+	{
+	  /* root mover is mated-> disproven */
+	  this->value = TRUE;
+	}
+      else
+	{
+	  this->value = FALSE;
+	};
+      return;
+    }
+  
+  if ((white_to_move && is_attacked(wking_loc, WHITE))
+      || (!white_to_move && is_attacked(bking_loc, BLACK)))	
+    {  
+     
+      captures = TRUE;
+
+      num_moves = 0;
+      gen (&moves[0]);
+      num_moves = numb_moves;
+      captures = FALSE;
+
+      mate = TRUE;
+      
+      for (i = 0; i < num_moves; i++) 
+	{
+	  make (&moves[0], i);
+	  
+	  /* check to see if our move is legal: */
+	  if (check_legal (&moves[0], i, TRUE)) 
+	    {
+	      mate = FALSE;
+	      unmake(&moves[0], i);
+	      break;
+	    };
+	  
+	  unmake(&moves[0], i);
+	}
+      
+	if (mate == TRUE)
+	{
+	  /* no legal capture..do non-captures */
+	  captures = FALSE;
+	  num_moves = 0;
+	  gen (&moves[0]);
+	  num_moves = numb_moves;
+	  
+	  for (i = 0; i < num_moves; i++) 
+	    {
+	      make (&moves[0], i);
+	      
+	      /* check to see if our move is legal: */
+	      if (check_legal (&moves[0], i, TRUE)) 
+		{
+		  mate = FALSE;
+		  unmake(&moves[0], i);
+		  break;
+		};
+	      
+	      unmake(&moves[0], i);
+	    }
+	}
+	
+	if (mate == TRUE)
+	  {
+	  /* proven or disproven */
+	    if (ToMove == root_to_move)
+	      {
+		/* root mover is mated-> disproven */
+		this->value = TRUE;
+	      }
+	    else
+	      {
+		this->value = FALSE;
+	      };
+	  }
+	else
+	  {
+	    this->value = UNKNOWN;
+	  };
+    }
+  else
+    {
+      this->value = UNKNOWN;
+    };
+  
+  //ep_square = ep_temp;
+  
+};
+
+
 node_t *select_most_proving (node_t * node)
 {
   int i;
@@ -285,11 +442,9 @@ node_t *select_most_proving (node_t * node)
 
       tnode = tnode->children[i];
 
-      p_rep_list[ply] = hash;
+      hash_history[move_number+ply-1] = hash; 	  
       
       make (&tnode->move, 0);
-      ply++;
-      
 
       if (ply > maxply)
 	maxply = ply;
@@ -307,8 +462,8 @@ void set_proof_and_disproof_numbers (node_t * node)
   int i;
   move_s moves[MOVE_BUFF];
   int l, num_moves;
-  int ept;
   int reploop;
+  int ic;
 
   if (node->expanded)
     {
@@ -358,43 +513,96 @@ void set_proof_and_disproof_numbers (node_t * node)
     {
       if (node->value == UNKNOWN)
 	{
+	  
+		  hash_history[move_number+ply-1] = hash; 
 
-	  for (reploop = 0; reploop < ply; reploop++)
-	  {
-	    if (p_rep_list[reploop] == hash)
+		if (is_draw() || ply > 200)
 	    {
 	      node->proof = 5000;
 	      node->disproof = 5000;
 	      return;
-	    };
-	  };
-	  
-	  ept = ep_square;
+	    }
+		
+		//ept = ep_square;
 
-	  num_moves = 0;
-	  gen (&moves[0]);
-	  num_moves = numb_moves;
-
-	  if (Variant != Suicide)
+	  if (Variant != Losers)
 	    {
-	      l = 0;
+	      num_moves = 0;
+	      gen (&moves[0]);
+	      num_moves = numb_moves;
 
-	      for (i = 0; i < num_moves; i++)
+	      ic = in_check();
+	      
+	      if (Variant != Suicide)
 		{
-		  make (&moves[0], i);
-		  /* check to see if our move is legal: */
-		  if (check_legal (&moves[0], i))
+		  l = 0;
+		  
+		  for (i = 0; i < num_moves; i++)
 		    {
-		      l++;
-		    }
-		  unmake (&moves[0], i);
+		      make (&moves[0], i);
+		      /* check to see if our move is legal: */
+		      if (check_legal (&moves[0], i, ic))
+			{
+			  l++;
+			}
+		      unmake (&moves[0], i);
+		    };
+		}
+	      else
+		{
+		  l = numb_moves;
 		};
 	    }
 	  else
 	    {
-	      l = numb_moves;
-	    };
+	      /* Losers...this a bit more messy */
 
+	      l = 0;
+	      captures = TRUE;
+	      num_moves = 0;
+	      gen (&moves[0]);
+	      num_moves = numb_moves;
+	      captures = FALSE;	
+
+	      ic = in_check();
+	      
+	      if (num_moves)
+		{
+		  for (i = 0; i < num_moves; i++)
+		    {
+		      make(&moves[0], i);
+		      
+		      if (check_legal(&moves[0], i, ic))
+			{
+			  l++;
+			}
+		      unmake(&moves[0], i);
+		    }
+		}
+	      
+	      //
+	      //ep_square = ept;
+	      
+	      if (!l) 
+		{
+		  captures = FALSE;
+		  num_moves = 0;
+		  gen(&moves[0]);
+		  num_moves = numb_moves;
+
+		  for (i = 0; i < num_moves; i++)
+		    {
+		      make(&moves[0], i);
+		      
+		      if (check_legal(&moves[0], i, ic))
+			{
+			  l++;
+			}
+		      unmake(&moves[0], i);
+		    }
+		};
+	    }
+	  
 	  if (l == 0)
 	    {
 	      /* might be stalemate too */
@@ -403,32 +611,50 @@ void set_proof_and_disproof_numbers (node_t * node)
 	    }
 	  else if (ToMove == root_to_move)	/* OR */
 	    {
-	      if (Variant != Suicide)
+	      if ((Variant != Suicide) && (Variant != Losers))
 		{
-		  node->proof = 1 + ((ply + 1) / 6);
-		  node->disproof = l + ((ply + 1) / 6);
+		  node->proof = 1 + (ply / 6);
+		  node->disproof = l + (ply  / 6);
 		}
 	      else
 		{
+		  if (ply > 100)
+		  {
+			  /* this is probably a bogus line,
+			     so breathen the tree */
+			  node->proof = 1 + ((ply-100)/2);
+			  node->disproof = 1 + ((ply-100)/2);
+		  }
+		  else
+		  {
 		  node->proof = 1;
 		  node->disproof = l;
+		  }
 		}
 	    }
 	  else
 	    {
-	      if (Variant != Suicide)
+	      if ((Variant != Suicide) && (Variant != Losers))
 		{
-		  node->proof = l + ((ply + 1) / 6);
-		  node->disproof = 1 + ((ply + 1) / 6);
+		  node->proof = l + (ply / 6);
+		  node->disproof = 1 + (ply / 6);
 		}
 	      else
 		{
+		  if (ply > 100)
+		  {
+			  node->proof = 1 + ((ply-100)/2);
+			  node->disproof = 1 + ((ply-100)/2);
+		  }
+		  else
+		  {
 		  node->proof = l;
 		  node->disproof = 1;
+		  }
 		}
 	    }
 
-	  ep_square = ept;
+	  //ep_square = ept;
 	}
       else if (node->value == FALSE)
 	{
@@ -459,23 +685,70 @@ void develop_node (node_t * node)
   move_s moves[MOVE_BUFF];
   int i, l;
   node_t *newnode;
+#ifdef PN2
   node_t **newchildren;
-  int ept;
+#endif
+  int leg;
+  int ic;
 
-  ept = ep_square;
+  //ept = ep_square;
 
-//  if (!pn2)
-//    pn2_eval(node);
+#ifdef PN2
+  if (!pn2)
+    pn2_eval(node);
+#endif
 
-  num_moves = 0;
-  gen (&moves[0]);
-  num_moves = numb_moves;
+  ic = in_check();
   
-//  if (pn2)
+  if (Variant != Losers)
+    {
+      num_moves = 0;
+      gen (&moves[0]);
+      num_moves = numb_moves;
+    }
+  else
+    {
+      captures = TRUE;
+      leg = FALSE;
+      num_moves = 0;
+
+      gen (&moves[0]);
+      num_moves = numb_moves;
+      captures = FALSE;
+
+      for (i = 0; i < num_moves; i++) 
+	{
+	  make (&moves[0], i);
+	  
+	  /* check to see if our move is legal: */
+	  if (check_legal (&moves[0], i, ic)) 
+	    {
+	      leg = TRUE;
+	      unmake(&moves[0], i);
+	      break;
+	    };
+	  
+	  unmake(&moves[0], i);
+	}
+      
+      if (leg == FALSE)
+	{
+	  captures = FALSE;
+	  num_moves = 0;
+	  gen (&moves[0]);
+	  num_moves = numb_moves;
+	}
+    }
+ 
+#ifdef PN2
+  if (pn2)
+#endif
     node->children = (node_t **) Xmalloc (num_moves * sizeof (node_t **));
-//  else
-//    newchildren = (node_t **) malloc (num_moves * sizeof (node_t **));
-    
+#ifdef PN2
+  else
+    newchildren = (node_t **) malloc (num_moves * sizeof (node_t **));
+#endif
+
   l = 0;
 
   for (i = 0; i < num_moves; i++)
@@ -483,24 +756,30 @@ void develop_node (node_t * node)
       make (&moves[0], i);
 
       /* check to see if our move is legal: */
-      if (check_legal (&moves[0], i))
+      if (check_legal (&moves[0], i, ic))
 	{
-  //        if (pn2)
+#ifdef PN2
+	  if (pn2)
+#endif
 	    newnode = (node_t *) Xmalloc (sizeof (node_t));
-//	  else
-//	    newnode = (node_t *) malloc (sizeof (node_t));
-
+#ifdef PN2
+	  else
+	    newnode = (node_t *) malloc (sizeof (node_t));
+#endif
 	  newnode->value = 0;
-
-//	  if (!pn2)
-//	    { 
-//	      newnode->proof = node->children[l]->proof;
-//	      newnode->disproof = node->children[l]->disproof;
-//	    }
-//	  else
-//	    {
+#ifdef PN2
+	  if (!pn2)
+	    { 
+	      newnode->proof = node->children[l]->proof;
+	      newnode->disproof = node->children[l]->disproof;
+	    }
+	  else
+	    {
+#endif
 	      newnode->proof = newnode->disproof = 1; 
-//	    };
+#ifdef PN2
+	    };
+#endif
 
 	  newnode->num_children = 0;
 	  newnode->parent = node;
@@ -508,19 +787,23 @@ void develop_node (node_t * node)
 	  newnode->expanded = FALSE;
 	  newnode->move = moves[i];
 
-//	  if (!pn2)
-//	    newchildren[l] = newnode;
-//	  else 
+#ifdef PN2
+	  if (!pn2)
+	    newchildren[l] = newnode;
+	  else 
+#endif
 	    node->children[l] = newnode;	  	  
 
 	  l++;
-
-//	  if (pn2 == FALSE)
-//	    /*use delayed eval */;
-//	  else if (pn2)
+#ifdef PN2
+	  if (pn2 == FALSE)
+	    /*use delayed eval */;
+	  else if (pn2)
+#endif
 	    pn_eval (newnode);
-
-//	  if (pn2)
+#ifdef PN2
+	  if (pn2)
+#endif
 	    set_proof_and_disproof_numbers (newnode);
 
 	  unmake (&moves[0], i);	 
@@ -532,16 +815,18 @@ void develop_node (node_t * node)
 
   node->expanded = TRUE;
   node->num_children = l;
-  
-//  if (!pn2)
-//    node->children = newchildren;
 
+#ifdef PN2
+  if (!pn2)
+    node->children = newchildren;
+#endif
+  
   /* account for stalemate ! */
   if (node->num_children == 0)
     {
       node->expanded = FALSE;
       node->evaluated = TRUE;
-      if (Variant != Suicide)
+      if (Variant != Suicide && Variant != Losers)
       {
       	node->value = STALEMATE;
       }
@@ -558,17 +843,19 @@ void develop_node (node_t * node)
       };
       
     };
-
-//  if (pn2)
-//    nodecount2 += num_moves;
-//  else
+#ifdef PN2
+  if (pn2)
+    nodecount2 += num_moves;
+  else
+#endif
     nodecount += num_moves;
 
   frees += num_moves;
   
-  ep_square = ept;
-
-//  if (!pn2) Xfree();
+  //ep_square = ept;
+#ifdef PN2
+  if (!pn2) Xfree();
+#endif
 };
 
 void update_ancestors (node_t * node)
@@ -587,7 +874,6 @@ void update_ancestors (node_t * node)
       if (tnode->move.target != 0)
 	{			/* traverse */
 	  unmake (&tnode->move, 0);
-	  ply--;
 	}
 
       tnode = tnode->parent;
@@ -596,7 +882,6 @@ void update_ancestors (node_t * node)
   if (prevnode->move.target != 0)
     {
       make (&prevnode->move, 0);
-      ply++;
     }
 
   return;
@@ -607,7 +892,9 @@ void
 pn2_eval (node_t * root)
 {
   node_t *mostproving;
+#ifdef PN2
   node_t *newroot;
+#endif
   node_t *currentnode;
   node_t *oldparent;
 
@@ -623,8 +910,7 @@ pn2_eval (node_t * root)
 
   currentnode = root;
 
-  while (root->proof != 0 && root->disproof != 0 && nodecount2 < nodecount
-    )
+  while (root->proof != 0 && root->disproof != 0 && nodecount2 < nodecount )
     {
       mostproving = select_most_proving (root);
       develop_node (mostproving);
@@ -651,19 +937,23 @@ proofnumbersearch (void)
   char output[8192];
   char PV[8192];
   int i;
-  int eps;
   float bdp;
-
+  int oldply;
+  
   nodecount = 1;
   iters = 0;
   frees = 0;
   ply = 1;
   maxply = 0;
-
+  
+  hash_history[move_number+ply-1] = hash; 
+  
   root_to_move = ToMove;
   
-  eps = ep_square;
+  //eps = ep_square;
 
+  memset(rootlosers, 0, sizeof(rootlosers));
+  
   start_time = rtime ();
 
   root = (node_t *) calloc (1, sizeof (node_t));
@@ -701,18 +991,21 @@ proofnumbersearch (void)
 
       iters++;
 
-      if ((iters % 128) == 0)
-	{
-//	  printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
-
-#undef SHOWPVS	  
-#ifdef SHOWPVS
+#ifdef PN2
+      if (iters)
+#else
+      if ((iters % 32) == 0)
+#endif
+      {
+#ifdef PN2
+	  printf("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d ", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
+	  
 	  printf ("PV: ");
 	  
 	  memset (output, 0, sizeof (output));
 	  memset (PV, 0, sizeof (PV));
 	  //currentnode = root;
-	  ply = 0;
+	  ply = 1;
 	  
 	  while (currentnode->expanded)
 	    {
@@ -741,8 +1034,6 @@ proofnumbersearch (void)
 	      strcat (PV, " ");
 	      
 	      make (&currentnode->move, 0);
-	      
-	      ply++;
 	    };
 	  
 	  while (currentnode != root)
@@ -750,18 +1041,21 @@ proofnumbersearch (void)
 	      unmake (&currentnode->move, 0);
 	      currentnode = currentnode->parent;
 	    };
+
+	  printf("\n");
 #endif
-//	  printf("\n");
-       
-      	  if ((rdifftime (rtime (), start_time) > pn_time))
+      	  if ((rdifftime (rtime (), start_time) > pn_time) && !interrupt())
        	    break;
 	}
     };
   
-  printf ("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof (node_t) / (float) (1024 * 1024))), iters);
+  printf ("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d MaxDepth: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof (node_t) / (float) (1024 * 1024))), iters,maxply);
 
   if (xb_mode && post)
     printf ("tellics whisper proof %d, disproof %d, %d nodes, %d iters, highest depth %d\n", root->proof, root->disproof, nodecount, iters, maxply);
+  
+  if (!xb_mode)
+    printf("Time : %f\n", (float)rdifftime(rtime(), start_time)/100.);
   
   while (currentnode != root)
     {
@@ -779,8 +1073,8 @@ proofnumbersearch (void)
       memset (output, 0, sizeof (output));
       memset (PV, 0, sizeof (PV));
       //currentnode = root;
-      ply = 0;
-
+      ply = 1;
+      
       while (currentnode->expanded)
 	{
 	  if (ToMove == root_to_move)
@@ -809,11 +1103,13 @@ proofnumbersearch (void)
 
 	  make (&currentnode->move, 0);
 
-	  if (ply == 0)
+	  if (ply == 1)
 	    pn_move = currentnode->move;
 
-	  ply++;
+	  forcedwin = TRUE;
 	};
+
+      oldply = ply;
 
       while (currentnode != root)
 	{
@@ -824,10 +1120,10 @@ proofnumbersearch (void)
       if (!kibitzed && xb_mode && post)
 	{
 	  kibitzed = TRUE;
-	  printf ("\ntellics kibitz Forced win in %d moves.\n", (ply+1)/2);
+	  printf ("\ntellics kibitz Forced win in %d moves.\n", oldply/2);
 	}
 
-      if (ply == 0) 
+      if (oldply == 1 && (root->proof == 0 || root->disproof == 0)) 
       {
 	if (root_to_move == WHITE)
 	{
@@ -876,13 +1172,20 @@ proofnumbersearch (void)
 	pn_move = root->children[i]->move;
 	break;
       }
+
+      if (root->children[i]->disproof == 0)
+	rootlosers[i] = TRUE;
+      else
+	rootlosers[i] = FALSE;
     };
+
+  pn_saver = pn_move;
 
   free(root);
   Xfree();
   free(membuff);
   
-  ep_square = eps;
+  //ep_square = eps;
 
   return;
 }
@@ -893,8 +1196,6 @@ move_s proofnumbercheck(move_s compmove)
   node_t *mostproving;
   node_t *currentnode;
   rtime_t start_time;
-  int i;
-  int eps;
   move_s resmove;
   
   nodecount = 0;
@@ -906,9 +1207,11 @@ move_s proofnumbercheck(move_s compmove)
   /* make our move to check */
   make(&compmove, 0);
 
+  hash_history[move_number+ply-1] = hash; 
+
   root_to_move = ToMove;
   
-  eps = ep_square;
+  //eps = ep_square;
   
   start_time = rtime();
   
@@ -931,7 +1234,7 @@ move_s proofnumbercheck(move_s compmove)
 	
       iters++;
       
-      if ((iters % 64) == 0)
+      if ((iters % 32) == 0)
 	{
 	  //	 printf("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
 	  if ((rdifftime (rtime (), start_time) > pn_time))
@@ -939,7 +1242,7 @@ move_s proofnumbercheck(move_s compmove)
 	}
     };
 
-  printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
+  printf("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
 
   while(currentnode != root)
   {
@@ -958,7 +1261,7 @@ move_s proofnumbercheck(move_s compmove)
       root->value = TRUE;
 
       /* use best disprover instead */
-      resmove = pn_saver;
+      resmove = pn_move;
 	         
     }
   else if (root->disproof == 0)
@@ -980,7 +1283,7 @@ move_s proofnumbercheck(move_s compmove)
   free(root);
   free(membuff);
 
-  ep_square = eps;
+  //ep_square = eps;
   
   return resmove;
 }

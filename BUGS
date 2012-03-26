@@ -1,9 +1,6 @@
---------------------------------------------------------------
-Please submit bug reports to sjeng-devel@lists.sourceforge.net
---------------------------------------------------------------
-
-NOT VERIFIED
-------------
+------------------------------------------
+Please submit bug reports to gcp@sjeng.org
+------------------------------------------
 
 KNOWN
 -----
@@ -11,8 +8,11 @@ KNOWN
 Trouble detecting variants and partner tells on chess.net. This is 
 an XBoard/WinBoard Zippy problem, not related to Sjeng itself.
 
-Analyse mode stops as soon as a mate is played.
-
 The 'ping' command interrupts the search.
 
 'white' and 'black' do not always work as intended.
+
+A condition which ends the game will stop the program when in analysis 
+mode.
+
+Loses sometimes.

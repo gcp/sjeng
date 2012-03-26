@@ -52,10 +52,6 @@ void Learn(int score, int best, int depth)
     {
       lrnfile = &lrn_zh;
     }
-  else if (Variant == Suicide)
-    {
-      lrnfile = &lrn_suicide;
-    }
   else
     return;
 
@@ -97,7 +93,9 @@ void LoadLearn(void)
     return;
   else if ((Variant == Normal) && !lrn_standard)
     return;
-  else if ((Variant == Suicide) && !lrn_suicide)
+  else if (Variant == Suicide)
+    return;
+  else if (Variant == Losers)
     return;
   
   if (Variant == Normal)
@@ -120,11 +118,6 @@ void LoadLearn(void)
   for (posloop = 0; posloop < number; posloop++)
     {
       fread(&draft, sizeof(LearnType), 1, *lrnfile);
-      
-      /*  	 printf("Learnstore: bd: %d  h: %X  hh: %X  om: %d  bm: %d d: %d\n",
-	  	 draft.Bound, draft.Hash, draft.Hold_hash, draft.OnMove,
-	  	 draft.Bestmove, draft.Depth);*/
-      
       LearnStoreTT(draft.Bound, draft.Hash, draft.Hold_hash, 
 		   draft.OnMove, draft.Bestmove, draft.Depth);	  
     }

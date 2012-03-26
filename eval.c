@@ -24,18 +24,18 @@
 #include "sjeng.h"
 #include "extvars.h"
 #include "protos.h"
+#include "squares.h"
 
 int Material;
-int std_material[] = { 0, 100, -100, 310, -310, 4000, -4000, 300, -300, 900, -900, 325, -325, 0 }; 
+int std_material[] = { 0, 100, -100, 310, -310, 4000, -4000, 500, -500, 900, -900, 325, -325, 0 }; 
 
 int zh_material[] = { 0, 100, -100, 210, -210, 4000, -4000, 250, -250, 450, -450, 230, -230, 0 }; 
 
-int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 250, -250, 150, -150, 200, -200, 0 }; 
+int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 250, -250, 150, -150, 200, -200, 0 };
 
-int material[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+int losers_material[] = { 0, 100, -100, 320, -320, 1000, -1000, 350, -350, 400, -400, 270, -270, 0 }; 
 
-#define max(x,y) (((x)>(y))?(x):(y))
-#define min(x,y) (((x)>(y))?(y):(x))
+int material[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; 
 
 const int file[144] =
 {0,0,0,0,0,0,0,0,0,0,0,0,
@@ -65,6 +65,36 @@ const int rank[144] =
  0,0,0,0,0,0,0,0,0,0,0,0,
  0,0,0,0,0,0,0,0,0,0,0,0};
 
+const int diagl[144] =
+{0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0, 1, 2, 3, 4, 5, 6, 7, 8,0,0,
+ 0,0, 9, 1, 2, 3, 4, 5, 6, 7,0,0,
+ 0,0,10, 9, 1, 2, 3, 4, 5, 6,0,0,
+ 0,0,11,10, 9, 1, 2, 3, 4, 5,0,0,
+ 0,0,12,11,10, 9, 1, 2, 3, 4,0,0,
+ 0,0,13,12,11,10, 9, 1, 2, 3,0,0,
+ 0,0,14,13,12,11,10, 9, 1, 2,0,0,
+ 0,0,15,14,13,12,11,10, 9, 1,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0
+};
+
+const int diagr[144] =
+{0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,15,14,13,12,11,10,9,1,0,0,
+ 0,0,14,13,12,11,10,9,1,2,0,0,
+ 0,0,13,12,11,10,9,1,2,3,0,0,
+ 0,0,12,11,10,9,1,2,3,4,0,0,
+ 0,0,11,10,9,1,2,3,4,5,0,0,
+ 0,0,10,9,1,2,3,4,5,6,0,0,
+ 0,0,9,1,2,3,4,5,6,7,0,0,
+ 0,0,1,2,3,4,5,6,7,8,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0
+};
+
 /* these tables will be used for positional bonuses: */
 
 const int bishop[144] = {
@@ -84,65 +114,69 @@ const int bishop[144] = {
 const int black_knight[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,-20,-10,-10,-10,-10,-10,-10,-20,0,0,
-0,0, 20, 40, 45, 45, 45,  45,20,-10,0,0,
-0,0,-10, 20, 45, 65, 45 , 65,20,-10,0,0,
-0,0,-10, 10, 45, 30, 30,  35,35,-10,0,0,
-0,0,-10, 0,  25, 30, 30,  25, 0,-10,0,0,
-0,0,-10, 0,  25, 25, 25,  25, 0,-10,0,0,
-0,0,-10, 0, 0,3,  3,  0,  0,-10,0,0,
-0,0,-20,-35,-10,-10,-10,-10,-35,-20,0,0,
+0,0,-20,-10,-10,-10,-10, -10,-10,-20,0,0,
+0,0,-10, 15, 25, 25, 25,  25, 15,-10,0,0,
+0,0,-10, 15, 25, 35, 35 , 35, 15,-10,0,0,
+0,0,-10, 10, 25, 20, 25,  25, 10,-10,0,0,
+0,0,-10, 0,  20, 20, 20,  20,  0,-10,0,0,
+0,0,-10, 0,  15, 15, 15,  15,  0,-10,0,0,
+0,0,-10, 0,   0,  3,  3,   0,  0,-10,0,0,
+0,0,-20,-35,-10,-10,-10, -10,-35,-20,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
 const int white_knight[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,-20,-35,-10,-10,-10,-10,-35,-20,0,0,
-0,0,-10,0,0,3,3,0,0,-10,0,0,
-0,0,-10,0,25,25,25,25,0,-10,0,0,
-0,0,-10,0,25,30,30,25,0,-10,0,0,
-0,0,-10,10,45,30,30,35,35,-10,0,0,
-0,0,-10,20,45,65,45,65,20,-10,0,0,
-0,0, 20,40,45,45,45,45,45,20,0,0,
-0,0,-20,-10,-10,-10,-10,-10,-10,-20,0,0,
+0,0,-20, -35,-10, -10, -10,-10, -35, -20,0,0,
+0,0,-10,   0,  0,   3,   3,  0,   0, -10,0,0,
+0,0,-10,   0, 15,  15,  15, 15,   0, -10,0,0,
+0,0,-10,   0, 20,  20,  20, 20,   0, -10,0,0,
+0,0,-10,  10, 25,  20,  25, 25,  10, -10,0,0,
+0,0,-10,  15, 25,  35,  35, 35,  15, -10,0,0,
+0,0,-10,  15, 25,  25,  25, 25,  15, -10,0,0,
+0,0,-20, -10,-10, -10, -10,-10, -10, -20,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
-const int white_pawn[144] = {
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,50, 70,-20,-20, 70,50,0,0,0,
-0,0,1,10,12,4,4,12,10,1,0,0,
-0,0,2,4,6,8,45,45,4,2,0,0,
-0,0,3,6,9,45,45,9,6,3,0,0,
-0,0,4,18,25,25,25,25,18,4,0,0,
-0,0,35,40,50,55,55,50,40,35,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0};
+const int white_pawn[144] = 
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,25, 25, 35,  5,  5, 50, 45, 30,0,0,
+  0,0, 0,  0,  0,  7,  7,  5,  5,  0,0,0,
+  0,0, 0,  0,  0, 14, 14,  0,  0,  0,0,0,
+  0,0, 0,  0, 10, 20, 20, 10,  5,  5,0,0,
+  0,0,12, 18, 18, 27, 27, 18, 18, 18,0,0,
+  0,0,25, 30, 30, 35, 35, 35, 30, 25,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
 
-const int black_pawn[144] = {
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,35,40,50,55,55,50,40,35,0,0,
-0,0,4,18,25,25,25,25,18,4,0,0,
-0,0,3,6,9,45,45,9,6,3,0,0,
-0,0,2,4,6,8,45,45,4,2,0,0,
-0,0,1,10,12,4,4,12,10,1,0,0,
-0,0,0,50, 70,-20,-20, 70,50,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0};
+const int black_pawn[144] = 
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,30, 30, 30, 35, 35, 35, 30, 25,0,0,
+  0,0,12, 18, 18, 27, 27, 18, 18, 18,0,0,
+  0,0, 0,  0, 10, 20, 20, 10,  5,  5,0,0,
+  0,0, 0,  0,  0, 14, 14,  0,  0,  0,0,0,
+  0,0, 0,  0,  0,  7,  7,  5,  5,  0,0,0,
+  0,0,25, 25, 35,  5,  5, 50, 45, 30,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
 
 /* to be used during opening and middlegame for white king positioning: */
 const int white_king[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0, -50,   7,   4,  0,  10  , 4,   7, -50,0,0,
-0,0,-250,-200,-100, -50, -50,-100,-200,-250,0,0,
+0,0,-100,   7,   4,  0,  10  , 4,   7,-100,0,0,
+0,0,-250,-200,-150,-100,-100,-150,-200,-250,0,0,
 0,0,-350,-300,-300,-250,-250,-300,-300,-350,0,0,
 0,0,-400,-400,-400,-350,-350,-400,-400,-400,0,0,
 0,0,-450,-450,-450,-450,-450,-450,-450,-450,0,0,
@@ -162,8 +196,8 @@ const int black_king[144] = {
 0,0,-450,-450,-450,-450,-450,-450,-450,-450,0,0,
 0,0,-400,-400,-400,-350,-350,-400,-400,-400,0,0,
 0,0,-350,-300,-300,-250,-250,-300,-300,-350,0,0,
-0,0,-250,-200,-100, -50, -50,-100,-200,-250,0,0,
-0,0, -50,   7,   4,   0,  10  , 4,   7, -50,0,0,
+0,0,-250,-200,-150,-100,-100,-150,-200,-250,0,0,
+0,0,-100,   7,   4,   0,  10  , 4,   7,-100,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -196,35 +230,38 @@ const int white_queen[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
-const int black_rook[144] = {
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-0, 0, 10, 15, 20, 25,25,20,15,10, 0, 0,
-0, 0, 0, 10, 15, 20, 20,15,10, 0, 0, 0,
-0, 0,-20,-20,-20,-20,-20,-20,-20,-20,-20,-20,
-0,0,-20,-20,-20,-30,-30,-20,-20,-20,0,0,
-0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
-0,0,-15,-15,-15,-10,-10,-15,-15,-15,0,0,
-0,0,0,0,0,7,10,5,0,0,0,0,
-0,0,0,0,0, 2,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,};
+const int black_rook[144] = 
+{
+  0,0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,
+  0,0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,
+  0,0, 10, 15, 20, 25, 25, 20, 15, 10,0,0,
+  0,0,  0, 10, 15, 20, 20, 15, 10,  0,0,0,
+  0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
+  0,0,-20,-20,-20,-30,-30,-20,-20,-20,0,0,
+  0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
+  0,0,-15,-15,-15,-10,-10,-15,-15,-15,0,0,
+  0,0,  0,  0,  0,  7, 10,  0,  0,  0,0,0,
+  0,0,  2,  2,  2,  2,  2,  2,  2,  2,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
 
-const int white_rook[144] = {
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,2,0,0,0,0,0,0,
-0,0,0,0,0,7,10,5,0,0,0,0,
-0,0,-15,-15,-15,-10,-10,-15,-15,-15,0,0,
-0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
-0,0,-20,-20,-20,-30,-30,-20,-20,-20,0,0,
-0, 0,-20,-20,-20,-20,-20,-20,-20,-20, 0, 0,
-0, 0, 0,10,15,20,20,15,10, 0, 0, 0,
-0, 0, 10, 15, 20, 25,25,20,15,10, 0, 0,
-0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0};
+const int white_rook[144] = 
+{
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,  2,  2,  2,  2,  2,  2,  2,  2,0,0,
+    0,0,  0,  0,  0,  7, 10,  0,  0,  0,0,0,
+    0,0,-15,-15,-15,-10,-10,-15,-15,-15,0,0,
+    0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
+    0,0,-20,-20,-20,-30,-30,-20,-20,-20,0,0,
+    0,0,-20,-20,-20,-20,-20,-20,-20,-20,0,0,
+    0,0,  0, 10, 15, 20, 20, 15, 10,  0,0,0,
+    0,0, 10, 15, 20, 25, 25, 20, 15, 10,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0
+};
 
-/* king safety tropisms */
 /* tropism values of 0 and 8 are bogus, 
    and should never happen in the actual eval */
 
@@ -251,21 +288,21 @@ unsigned char b_tropism[144][144];
 
 int ksafety_scaled[15][9] =
 { 
-   (  -5,   5,  10,  15,  50,  80, 150, 150, 150 ),   /* nothing */
-   (  -5,  15,  20,  25,  70, 150, 200, 200, 200 ),   /* 1 pawns */
-   (  -5,  15,  30,  30, 100, 200, 300, 300, 300 ),   /* 2 pawns */
-   ( -10,  20,  40,  40, 100, 200, 300, 300, 400 ),   /* 1 minor piece */
-   ( -10,  30,  50,  80, 150, 300, 400, 400, 500 ),   /* 1 minor piece + pawn */
-   ( -10,  35,  60, 100, 200, 250, 400, 400, 500 ),   /* queen */
-   ( -10,  40,  70, 110, 210, 300, 500, 500, 600 ),   /* queen + pawn */
-   ( -10,  45,  75, 125, 215, 300, 500, 600, 700 ),   /* queen + 2 pawn */
-   ( -10,  60,  90, 130, 240, 350, 500, 600, 700 ),   /* queen + piece */
-   ( -15,  60,  95, 145, 260, 350, 500, 600, 700 ),   /* queen + piece + pawn */
-   ( -15,  60, 100, 150, 270, 350, 500, 600, 700 ),   /* 2 queen */
-   ( -15,  60, 110, 160, 280, 400, 600, 700, 800 ),
-   ( -20,  70, 115, 165, 290, 400, 600, 700, 800 ),
-   ( -20,  80, 120, 170, 300, 450, 700, 800, 900 ),
-   ( -20,  80, 125, 175, 310, 450, 700, 800, 900 )
+  {  -5,   5,  10,  15,  50,  80, 150, 150, 150 },   /* nothing */
+  {  -5,  15,  20,  25,  70, 150, 200, 200, 200 },   /* 1 pawns */
+  {  -5,  15,  30,  30, 100, 200, 300, 300, 300 },   /* 2 pawns */
+  { -10,  20,  40,  40, 100, 200, 300, 300, 400 },   /* 1 minor piece */
+  { -10,  30,  50,  80, 150, 300, 400, 400, 500 },   /* 1 minor piece + pawn */
+  { -10,  35,  60, 100, 200, 250, 400, 400, 500 },   /* queen */
+  { -10,  40,  70, 110, 210, 300, 500, 500, 600 },   /* queen + pawn */
+  { -10,  45,  75, 125, 215, 300, 500, 600, 700 },   /* queen + 2 pawn */
+  { -10,  60,  90, 130, 240, 350, 500, 600, 700 },   /* queen + piece */
+  { -15,  60,  95, 145, 260, 350, 500, 600, 700 },   /* queen + piece + pawn */
+  { -15,  60, 100, 150, 270, 350, 500, 600, 700 },   /* 2 queen */
+  { -15,  60, 110, 160, 280, 400, 600, 700, 800 },
+  { -20,  70, 115, 165, 290, 400, 600, 700, 800 },
+  { -20,  80, 120, 170, 300, 450, 700, 800, 900 },
+  { -20,  80, 125, 175, 310, 450, 700, 800, 900 }
 };
 
 void initialize_eval(void)
@@ -316,7 +353,7 @@ long int eval (void) {
   int i, a, j; 
   long int score = 0;
   int in_cache;
-  int safety, attackers, badsquares; 
+  int safety, badsquares; 
   int norm_white_hand_eval, norm_black_hand_eval;
   int wdev_dscale, bdev_dscale;
   
@@ -327,6 +364,10 @@ long int eval (void) {
   else if (Variant == Suicide)
     {
       return suicide_eval();
+    }
+  else if (Variant == Losers)
+    {
+      return losers_eval();
     }
   
   in_cache = 0;
@@ -345,22 +386,30 @@ long int eval (void) {
    * in hand */
   if (cfg_devscale)
     {
-      if (white_hand_eval <= 200)
+	  /* computer plays black -> no white downscaling */
+	if (white_to_move != comp_color)
 	{
-	  /* 2 pawns or less */
-	  wdev_dscale = 2;
-	}
-      else if (white_hand_eval >= 700)
+	if (white_hand_eval <= 200 && (Variant != Bughouse))
 	{
-	  /* queen + minor, three minors or more */
-	  wdev_dscale = 0;
+	/* 2 pawns or less */
+	wdev_dscale = 2;
 	}
-      else
+	else if (white_hand_eval >= 700)
 	{
-	  wdev_dscale = 1;
+	/* queen + minor, three minors or more */
+	wdev_dscale = 0;
 	}
-      
-      if ((-black_hand_eval) <= 200)
+	else
+	{
+	wdev_dscale = 1;
+	}
+	}
+	else
+	wdev_dscale = 0;
+	
+	if (white_to_move == comp_color)
+	{
+      if ((-black_hand_eval) <= 200 && (Variant != Bughouse))
 	{
 	  /* 2 pawns or less */
 	  bdev_dscale = 2;
@@ -374,6 +423,9 @@ long int eval (void) {
 	{
 	  bdev_dscale = 1;
 	}
+	}
+	else
+		bdev_dscale = 0;
     }
   else
   {
@@ -482,19 +534,167 @@ long int eval (void) {
   if (!moved[102] && board[90] != npiece)
     score += 15;
 
+  
+  if (cfg_smarteval)
+  {
+  /* Pawn cover for the King please... */
+  /* White */
+  
+  if (wking_loc != E1 && wking_loc != D1)
+  {
+  	if (board[wking_loc+11] != wpawn) score -= 24;
+  	if (board[wking_loc+12] != wpawn) score -= 35;
+  	if (board[wking_loc+13] != wpawn) score -= 24;
+	
+	/* When castled, building a fortress wont hurt */
+	if (white_castled)
+	  {
+	    if (board[bking_loc-25] == bpawn) score += 11;
+	    if (board[bking_loc-24] == bpawn) score += 15;
+	    if (board[bking_loc-23] == bpawn) score += 11;    
+	  }
+  }
+  /* Black */
+  if (bking_loc != E8 && bking_loc != D8)
+  {
+  	if (board[bking_loc-13] != bpawn) score += 24;
+  	if (board[bking_loc-12] != bpawn) score += 35;
+  	if (board[bking_loc-11] != bpawn) score += 24;
+
+	/* When castled, building a fortress wont hurt */
+	if (black_castled)
+	  {
+	    if (board[bking_loc-25] == bpawn) score -= 11;
+	    if (board[bking_loc-24] == bpawn) score -= 15;
+	    if (board[bking_loc-23] == bpawn) score -= 11;    
+	  }
+  }
+  /* Develop stuff */
+  if (moved[E2])
+    {
+      score += 30;
+      if (moved[D2]) score += 25;
+      if (moved[G1]) score += 20;
+      if (moved[B1]) score += 15;
+      if (moved[C1]) score += 10;
+    }
+  if (moved[E7])
+    {
+      score -= 30;
+      if (moved[D7]) score -= 25;
+      if (moved[G8]) score -= 20;
+      if (moved[B8]) score -= 15;
+      if (moved[C8]) score -= 10;
+	
+    }
+ 
+  /* Bad holes in the kingside (g2/e2) or (g7/e7) allow attacks */
+
+  if ((board[G2] != wpawn) && (board[F3] == bpawn || board[E4] == bpawn))
+      score -= 30;
+  if ((board[G7] != bpawn) && (board[F6] == wpawn || board[E5] == wpawn))
+      score += 30;
+
+#define Fis_attacked(x,y) (board[(x)] == frame ? 0 : is_attacked((x),(y)))
+#define Gis_attacked(x,y) (board[(x)] == frame ? 0 : nk_attacked((x),(y)))
+
+  /* An enemy pawn in front of the king can be deadly.*/
+  /* especially if it is protected                    */
+        
+  if (board[wking_loc + 12] == bpawn || board[wking_loc + 12] == bbishop)
+    {
+      score -= 35;
+      if (Fis_attacked(wking_loc + 12, 0))
+	score -= 150 >> bdev_dscale;
+    }
+  if (board[bking_loc - 12] == wpawn || board[bking_loc - 12] == wbishop)
+    {
+      score += 35;
+      if (Fis_attacked(bking_loc - 12,1))
+	score += 150 >> wdev_dscale;
+    }
+  
+  /* If e6 is attacked but there is no pawn there (just P-f7) */
+  
+  /* I rely on CSE to remove the extra square checks and avoid the
+   * is_attacked call */
+  
+  if (((board[F2] == wpawn) || (board[E3] == wpawn) || board[E3] == bpawn) && Fis_attacked(E3,0))
+    {
+      if (board[F2] == wpawn) score += 10;
+      if (board[E3] == wpawn) score += 20;
+      else if (board[E3] == bpawn) score -= 15;
+    }
+  if (((board[F7] == bpawn) || (board[E6] == bpawn) || board[E6] == wpawn) && Fis_attacked(E6,1))
+    {
+      if (board[F7] == bpawn) score -= 10;
+      if (board[E6] == bpawn) score -= 20;
+      else if (board[E6] == wpawn) score += 15;
+    }
+	
+  /* Bonus if in check */
+	
+  if (Fis_attacked(bking_loc,1))
+    score += 50 >> wdev_dscale;
+  else if (Fis_attacked(wking_loc,0))
+    score -= 50 >> bdev_dscale;
+
+  /* Give big pentalty for knight or pawn at g2/g7 especially if supported */
+  /* Also  protect  with  Rook  and  Bishop                                */
+
+  if (board[G2] == bknight)
+    {
+      score -= 20;
+      if (Fis_attacked(G2,0)) score -= 40;
+      if (board[G1] == wrook) score += 10;
+      if (board[F1] == wbishop) score += 10;
+    }
+  if (board[G7] == wknight)
+    {
+      score += 20;
+      if (Fis_attacked(G7,1)) score += 40;
+      if (board[G8] == brook) score -= 10;
+      if (board[F8] == bbishop)score -= 10;
+    }
+	
+  /* Bishop at h3/h6 often leads to crushing attacks */
+  /* Especially when the king is trapped behind a N  */
+    
+  if ((board[H3] == bbishop) && (board[G2] != wpawn))
+    {
+      score -= 20;
+      if (board[G2] == bknight)
+	{
+	  score -= 40;
+	  if (board[F1] == wking || board[G1] == wking || board[H1] == wking)
+	      score -= 80;
+	}
+    }
+  if ((board[H6] == wbishop) && (board[G7] != bpawn))
+    {
+      score += 20;
+      if (board[G7] == wknight)
+	{
+	  score += 40;
+	  if (board[F8] == bking || board[G8] == bking || board[H8] == bking)
+	    score += 80;
+	}
+    }
+  }
+ 
+  if (cfg_attackeval)
+  {
   badsquares = 0;
   safety = 0;
   
-#define Fis_attacked(x,y) (board[(x)] == frame ? 0 : is_attacked((x),(y)))
-  
-  badsquares += Fis_attacked(wking_loc - 13, 0);
-  badsquares += Fis_attacked(wking_loc - 12, 0);
-  badsquares += Fis_attacked(wking_loc - 11, 0);
-  badsquares += Fis_attacked(wking_loc -  1, 0);
-  badsquares += Fis_attacked(wking_loc +  1, 0);
-  badsquares += Fis_attacked(wking_loc + 11, 0);
-  badsquares += Fis_attacked(wking_loc + 12, 0);
-  badsquares += Fis_attacked(wking_loc + 13, 0);
+  badsquares += Gis_attacked(wking_loc - 13, 0);
+  badsquares += Gis_attacked(wking_loc - 12, 0);
+  badsquares += Gis_attacked(wking_loc - 11, 0);
+  badsquares += Gis_attacked(wking_loc -  1, 0);
+  badsquares += Gis_attacked(wking_loc +  1, 0);
+  badsquares += Gis_attacked(wking_loc + 11, 0);
+  badsquares += Gis_attacked(wking_loc + 12, 0);
+  badsquares += Gis_attacked(wking_loc + 13, 0);
 
   norm_black_hand_eval = ((-black_hand_eval) / 100);
   if (norm_black_hand_eval > 14) norm_black_hand_eval = 14;
@@ -504,14 +704,14 @@ long int eval (void) {
 
   badsquares = 0;
 
-  badsquares += Fis_attacked(bking_loc - 13, 1);
-  badsquares += Fis_attacked(bking_loc - 12, 1);
-  badsquares += Fis_attacked(bking_loc - 11, 1);
-  badsquares += Fis_attacked(bking_loc -  1, 1);
-  badsquares += Fis_attacked(bking_loc +  1, 1);
-  badsquares += Fis_attacked(bking_loc + 11, 1);
-  badsquares += Fis_attacked(bking_loc + 12, 1);
-  badsquares += Fis_attacked(bking_loc + 13, 1);
+  badsquares += Gis_attacked(bking_loc - 13, 1);
+  badsquares += Gis_attacked(bking_loc - 12, 1);
+  badsquares += Gis_attacked(bking_loc - 11, 1);
+  badsquares += Gis_attacked(bking_loc -  1, 1);
+  badsquares += Gis_attacked(bking_loc +  1, 1);
+  badsquares += Gis_attacked(bking_loc + 11, 1);
+  badsquares += Gis_attacked(bking_loc + 12, 1);
+  badsquares += Gis_attacked(bking_loc + 13, 1);
 
   norm_white_hand_eval = (white_hand_eval / 100);
   if (norm_white_hand_eval > 14) norm_white_hand_eval = 14;
@@ -520,6 +720,7 @@ long int eval (void) {
   safety += ksafety_scaled[norm_white_hand_eval][badsquares];
   
   score += safety;
+  }
   
   storeECache(score);
 

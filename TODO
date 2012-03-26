@@ -1,24 +1,6 @@
 TODO
 
-3. Root move ordering based on node counts
-5. Do king-safety at root and maybe tell partner whether trades are good
-6b. Reimplement hashtables (save move to avoid movegen ?)
-7. Check Internal iterative deepening (prolly not working)
-12a. BPGN support
-13. Prevent blocking of rooks at a8 in standard mode (cfr. crafty)
-15. Just keep researching if dead
-16. Remove has_castled dependencies
-17. If partner tells +++ override alpha-beta with a special check
-20. Split up movegen to do captures and normal moves seperately
-23. Add endgame database support
-24. Experiment with TD learning
+Nothing. This thing is getting messier, buggier,
+slower and less maintainable with each release.
 
-MAYBE
-
-8. Threat heuristics
-11. Add a feature to anticipate trades
-12. Force moving into mate
-
-DIDN'T WORK
-
-18. No legal move check if move is from hashtable
+Time to move on.

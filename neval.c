@@ -24,20 +24,21 @@
 #include "sjeng.h"
 #include "extvars.h"
 #include "protos.h"
+#include "squares.h"
 
 /* these tables will be used for positional bonuses: */
 
 static int sbishop[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,-5,-5,-5,-5,-5,-5,-5,-5,0,0,
-0,0,-5,10,5,10,10,5,10,-5,0,0,
-0,0,-5,5,3,10,10,3,5,-5,0,0,
-0,0,-5,3,10,6,6,10,3,-5,0,0,
-0,0,-5,3,10,6,6,10,3,-5,0,0,
-0,0,-5,5,3,10,10,3,5,-5,0,0,
-0,0,-5,10,5,10,10,5,10,-5,0,0,
-0,0,-5,-5,-5,-5,-5,-5,-5,-5,0,0,
+0,0,-2,-2,-2,-2,-2,-2,-2,-2,0,0,
+0,0,-2,8,5,5,5,5,8,-2,0,0,
+0,0,-2,3,3,5,5,3,3,-2,0,0,
+0,0,-2,2,5,4,4,5,2,-2,0,0,
+0,0,-2,2,5,4,4,5,2,-2,0,0,
+0,0,-2,3,3,5,5,3,3,-2,0,0,
+0,0,-2,8,5,5,5,5,8,-2,0,0,
+0,0,-2,-2,-2,-2,-2,-2,-2,-2,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -88,7 +89,7 @@ static int swhite_king[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,2,14,0,0,0,9,14,2,0,0,
-0,0,-3,-3,-5,-5,-5,-5,-3,-3,0,0,
+0,0,-3,-5,-6,-6,-6,-6,-5,-3,0,0,
 0,0,-5,-5,-8,-8,-8,-8,-5,-5,0,0,
 0,0,-8,-8,-13,-13,-13,-13,-8,-8,0,0,
 0,0,-13,-13,-21,-21,-21,-21,-13,-13,0,0,
@@ -108,7 +109,7 @@ static int sblack_king[144] = {
 0,0,-13,-13,-21,-21,-21,-21,-13,-13,0,0,
 0,0,-8,-8,-13,-13,-13,-13,-8,-8,0,0,
 0,0,-5,-5,-8,-8,-8,-8,-5,-5,0,0,
-0,0,-3,-3,-5,-5,-5,-5,-3,-3,0,0,
+0,0,-3,-5,-6,-6,-6,-6,-5,-3,0,0,
 0,0,2,14,0,0,0,9,14,2,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
@@ -123,7 +124,7 @@ static int send_king[144] = {
 0,0,0,10,25,30,30,25,10,0,0,0,
 0,0,0,10,25,30,30,25,10,0,0,0,
 0,0,-1,10,25,25,25,25,10,-1,0,0,
-0,0,-3,10,10,10,10,10,-3,0,0,
+0,0,-3,10,10,10,10,10,10,-3,0,0,
 0,0,-5,-3,-1,0,0,-1,-3,-5,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
@@ -132,6 +133,38 @@ static int send_king[144] = {
 static int srev_rank[9] = {
 0,8,7,6,5,4,3,2,1};
 
+const int std_p_tropism[9] = 
+{ 9999, 15, 10, 7, 2, 0, 0, 0, 9999};
+
+const int std_r_tropism[9] = 
+{ 9999, 10, 6, 4, 2, 0, 0, 0, 9999};
+
+const int std_n_tropism[9] =
+{ 9999, 14, 9, 6, 1, 0, 0, 0, 9999};
+
+const int std_q_tropism[9] =
+{ 9999, 16, 12, 7, 2, 0, 0, 0, 9999};
+
+const int std_b_tropism[9] =
+{ 9999, 12, 7, 5, 0, 0, 0, 0, 9999};
+
+
+static int bishop_mobility(int square)
+{
+  register int l;
+  register int m = 0;
+
+  for (l = square-13; board[l] == npiece; l-=13)
+    m++;
+  for (l = square-11; board[l] == npiece; l-=11)
+    m++;
+  for (l = square+11; board[l] == npiece; l+=11)
+    m++;
+  for (l = square+13; board[l] == npiece; l+=13)
+    m++;
+
+  return m;
+}
 
 long int end_eval (void) {
 
@@ -144,7 +177,9 @@ long int end_eval (void) {
   int in_cache;
   int wp = 0, bp = 0, wn = 0, bn = 0, wb = 0, bb = 0,
     wq = 0, bq = 0, wr = 0, br = 0;
-
+  int fwrook, fbrook, rwrook, rbrook;
+  int wpotential = 0, bpotential = 0, tmp;
+  
   in_cache = 0;
   
   checkECache(&score, &in_cache);
@@ -242,10 +277,72 @@ long int end_eval (void) {
 	   pawns are what wins the endgame): */
 	if (!pawns[0][pawn_file] && srank >= black_back_pawn[pawn_file-1] &&
 	    srank >= black_back_pawn[pawn_file+1]) {
-	  score += 20 + 3*swhite_pawn[i];
+	  score += 30 + 3*swhite_pawn[i];
+
+	  if (white_to_move)
+	  {
+	    /* check queening race */
+	    /* tmp = queening square */
+	    tmp = A8 + file(i) - 1;
+	    /* king is away how much ?*/
+	    if (max(abs(file(bking_loc)-file(tmp)), abs(rank(bking_loc)-rank(tmp))) 
+		> (abs(rank(tmp) - rank(i))))
+	    {
+	      wpotential += 800;
+	    }
+	  }
+	  else
+	  {
+	    /* check queening race */
+	    /* tmp = queening square */
+	    tmp = A8 + file(i) - 1;
+	    /* king is away how much ?*/
+	    if ((max(abs(file(bking_loc)-file(tmp)), abs(rank(bking_loc)-rank(tmp)))-1) 
+		> (abs(rank(tmp) - rank(i))))
+	    {
+	      wpotential += 800;
+	    }
+	  }
+	  
+	  /* outside passer ? */
+	  if (file(i) == 1 || file(i) == 8)
+	    score += 12 + 2*swhite_pawn[i];
+	    
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
-	    score += 18;
+	    {
+	      score += 12;
+
+	      /* check whether supporter is passed */
+	      if (pawns[1][pawn_file+1])
+		{
+		  if (!pawns[0][pawn_file+1]  
+		      && white_back_pawn[pawn_file+1] >= black_back_pawn[pawn_file+2])
+		    {
+		      score += 7*rank(i);
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 7 && white_back_pawn[pawn_file+1] >= 6)
+			{
+			  score += 50;
+			}
+		    }
+		}
+	      if (pawns[1][pawn_file-1])
+		{
+		   if (!pawns[0][pawn_file-1]  
+		      && white_back_pawn[pawn_file+1] >= black_back_pawn[pawn_file-2])
+		    {
+		      score += 7*rank(i);
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 7 && white_back_pawn[pawn_file-1] >= 6)
+			{
+			  score += 50;
+			}		   
+		    }
+		}
+	    }
 	}
 
 	break;
@@ -289,10 +386,73 @@ long int end_eval (void) {
 	   pawns are what wins the endgame): */
 	if (!pawns[1][pawn_file] && srank <= white_back_pawn[pawn_file-1] &&
 	    srank <= white_back_pawn[pawn_file+1]) {
-	  score -= 20 + 3*sblack_pawn[i];
+	  score -= 30 + 3*sblack_pawn[i];
+	      
+	  if (!white_to_move)
+	  {
+	    /* check queening race */
+	    /* tmp = queening square */
+	    tmp = A1 + file(i) - 1;
+	    /* king is away how much ?*/
+	    if (max(abs(file(wking_loc)-file(tmp)), abs(rank(wking_loc)-rank(tmp))) 
+		> (abs(rank(tmp) - (rank(i)))))
+	    {
+	      bpotential -= 800;
+	    }
+	  }
+	  else
+	  {
+	    /* check queening race */
+	    /* tmp = queening square */
+	    tmp = A1 + file(i) - 1;
+	    /* king is away how much ?*/
+	    if ((max(abs(file(wking_loc)-file(tmp)), abs(rank(wking_loc)-rank(tmp)))-1) 
+		> abs((rank(tmp) - rank(i))))
+	    {
+	      bpotential -= 800;
+	    }
+	  }
+	  
+	  /* outside passer ? */
+	  if (file(i) == 1 || file(i) == 8)
+	    score -= 12 + 2*sblack_pawn[i];
+	  
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
-	    score -= 18;
+	    {
+	      score -= 12;
+
+	      /* check whether supporter is passed */
+	      if (pawns[0][pawn_file+1])
+		{
+		  if (!pawns[1][pawn_file+1]  
+		      && black_back_pawn[pawn_file+1] <= white_back_pawn[pawn_file+2])
+		    {
+		      score -= 7*(9-rank(i));
+
+		      /* on seventh and supported ? */
+		      if (rank(i) == 2 && black_back_pawn[pawn_file+1] <= 3)
+			{
+			  score -= 50;
+			}
+		    }
+		}
+	      if (pawns[0][pawn_file-1])
+		{
+		   if (!pawns[1][pawn_file-1]  
+		      && black_back_pawn[pawn_file-1] <= white_back_pawn[pawn_file-2])
+		    {
+		      score -= 7*(9-rank(i));
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 2 && black_back_pawn[pawn_file-1] <= 3)
+			{
+			  score -= 50;
+			}
+		   
+		    }
+		}
+	    }
 	}
 
 	break;
@@ -300,16 +460,36 @@ long int end_eval (void) {
       case (wrook):
 	score += 500;
 	wr++;
+
+	if (wr == 1)
+	    {
+		fwrook = file(i);
+		rwrook = rank(i);
+	    }
 	
 	/* bonus for being on the 7th (a bit bigger bonus in the endgame, b/c
 	   a rook on the 7th can be a killer in the endgame): */
 	if (srank == 7)
+	{
 	  score += 12;
+
+	  if (wr == 2 && 7 == rwrook)
+	      {
+		score += 10;
+	      }
+	}
 
 	/* give bonuses depending on how open the rook's file is: */
 	if (!pawns[1][pawn_file]) {
 	  /* half open file */
 	  score += 5;
+
+	  if (wr == 2 && file(i) == fwrook)
+	    {
+	      /* connected on file */
+	      score += 10;
+	    }
+
 	  if (!pawns[0][pawn_file]) {
 	    /* open file */
 	    score += 3;
@@ -322,32 +502,56 @@ long int end_eval (void) {
 	score -= 500;
 	br++;
 
+	if (br == 1)
+	    {
+		fbrook = file(i);
+		rbrook = rank(i);
+	    }
+
+
 	/* bonus for being on the 7th (a bit bigger bonus in the endgame, b/c
 	   a rook on the 7th can be a killer in the endgame): */
 	if (srank == 2)
-	  score -= 12;
+	    {
+		  score -= 12;
+
+		  if (br == 2 && 2 == rbrook)
+		      {
+			score -= 10;
+		      }
+	    }
 
 	/* give bonuses depending on how open the rook's file is: */
-	if (!pawns[0][pawn_file]) {
+	if (!pawns[0][pawn_file]) 
+	  {
 	  /* half open file */
 	  score -= 5;
-	  if (!pawns[1][pawn_file]) {
-	    /* open file */
-	    score -= 3;
-	  }
-	}
+	  
+	  if (br == 2 && file(i) == fbrook)
+	    {
+	      /* connected on file */
+	      score -= 10;
+	    }
 
+	  if (!pawns[1][pawn_file]) 
+	    {
+	      /* open file */
+	      score -= 3;
+	    }
+	}
 	break;
 
       case (wbishop):
 	score += 325;
 	score += sbishop[i];
+	score += (bishop_mobility(i) << 1) - 15;
 	wb++;
 	break;
 
       case (bbishop):
 	score -= 325;
 	score -= sbishop[i];
+	score -= (bishop_mobility(i) << 1) - 15;
 	bb++;
 	break;
 
@@ -376,9 +580,20 @@ long int end_eval (void) {
   }
 
   /* some static knowledge about drawn endgames */
-
+ 
+ /* pawn ending detection */
+ if (!wr && !wq && !wb && !wn)
+ {
+   score += bpotential;
+ }
+ 
+ if (!br && !bq && !bb && !bn)
+ {
+   score += wpotential;
+ }
+ 
  /* no more pawns */
-  if (!wp && !bp)
+ if (!wp && !bp)
     {
       /* nor heavies */
       if (!wr && !br && !wq && !bq)
@@ -552,7 +767,7 @@ void check_phase(void)
 	  num_pieces++;
 	}
     };
-  if ((num_pieces > 11) 
+  if ((num_pieces >= 12) 
       /* not both have castled */
       && (!white_castled || !black_castled) 
       /* no both lost castling priveledges */
@@ -560,7 +775,7 @@ void check_phase(void)
     {
       phase = Opening;
     }
-  else if (num_pieces < 7) 
+  else if (num_pieces <= 6) 
     {
       phase = Endgame;
     }
@@ -597,6 +812,7 @@ long int mid_eval (void) {
   int in_cache;
   int wp = 0, bp = 0, wn = 0, bn = 0, wb = 0, bb = 0,
 	  wq = 0, bq = 0, wr = 0, br = 0;
+  int rbrook, fbrook, rwrook,fwrook;
 
   in_cache = 0;
   
@@ -626,15 +842,19 @@ long int mid_eval (void) {
  
     assert((i > 0) && (i < 145));
     
-    pawn_file = file (i)+1;
-    srank = rank (i);
     if (board[i] == wpawn) {
+      pawn_file = file (i)+1;
+      srank = rank (i);
+
       pawns[1][pawn_file]++;
       if (srank < white_back_pawn[pawn_file]) {
 	white_back_pawn[pawn_file] = srank;
       }
     }
     else if (board[i] == bpawn) {
+      pawn_file = file (i)+1;
+      srank = rank (i);
+
       pawns[0][pawn_file]++;
       if (srank > black_back_pawn[pawn_file]) {
 	black_back_pawn[pawn_file] = srank;
@@ -674,6 +894,8 @@ long int mid_eval (void) {
 	  }
 	}
 
+	score += std_p_tropism[max(abs(rank(i) - rank(bking_loc)), 
+	     		           abs(file(i) - file(bking_loc)))];
 	/* give weak, exposed pawns a penalty: */
 	if (!pawns[0][pawn_file]) {
 	  if (backwards) score -= 4;
@@ -687,10 +909,43 @@ long int mid_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[0][pawn_file] && srank >= black_back_pawn[pawn_file-1] &&
 	    srank >= black_back_pawn[pawn_file+1]) {
-	  score += 10 + 2*swhite_pawn[i];
+	  score += 20 + 2*swhite_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
-	    score += 15;
+	    {
+	      score += 10;
+
+	      /* check whether supporter is passed */
+	      if (pawns[1][pawn_file+1])
+		{
+		  if (!pawns[0][pawn_file+1]  
+		      && white_back_pawn[pawn_file+1] >= black_back_pawn[pawn_file+2])
+		    {
+		      score += 7*rank(i);
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 7 && white_back_pawn[pawn_file+1] >= 6)
+			{
+			  score += 50;
+			}
+		    }
+		}
+	      if (pawns[1][pawn_file-1])
+		{
+		   if (!pawns[0][pawn_file-1]  
+		      && white_back_pawn[pawn_file+1] >= black_back_pawn[pawn_file-2])
+		    {
+		      score += 7*rank(i);
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 7 && white_back_pawn[pawn_file-1] >= 6)
+			{
+			  score += 50;
+			}
+		    }
+		}
+
+	    }
 	}
 
 	break;
@@ -714,6 +969,9 @@ long int mid_eval (void) {
 	  }
 	}
 
+	score -= std_p_tropism[max(abs(rank(i) - rank(wking_loc)), 
+   			           abs(file(i) - file(wking_loc)))];
+	 
 	/* give weak, exposed pawns a penalty: */
 	if (!pawns[1][pawn_file]) {
 	  if (backwards) score += 4;
@@ -727,10 +985,43 @@ long int mid_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[1][pawn_file] && srank <= white_back_pawn[pawn_file-1] &&
 	    srank <= white_back_pawn[pawn_file+1]) {
-	  score -= 10 + 2*sblack_pawn[i];
+	  score -= 20 + 2*sblack_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
-	    score -= 15;
+	    {
+	      score -= 10;
+
+	      /* check whether supporter is passed */
+	      if (pawns[0][pawn_file+1])
+		{
+		  if (!pawns[1][pawn_file+1]  
+		      && black_back_pawn[pawn_file+1] <= white_back_pawn[pawn_file+2])
+		    {
+		      score -= 7*(9-rank(i));
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 2 && black_back_pawn[pawn_file+1] <= 3)
+			{
+			  score -= 50;
+			}
+		      
+		    }
+		}
+	      if (pawns[0][pawn_file-1])
+		{
+		   if (!pawns[1][pawn_file-1]  
+		      && black_back_pawn[pawn_file-1] <= white_back_pawn[pawn_file-2])
+		    {
+		      score -= 7*(9-rank(i));
+
+		      /* connected on seventh ? */
+		      if (rank(i) == 2 && black_back_pawn[pawn_file-1] <= 3)
+			{
+			  score -= 50;
+			}
+		   }
+		}
+	    }
 	}
 
 	break;
@@ -738,15 +1029,37 @@ long int mid_eval (void) {
       case (wrook):
 	score += 500;
 	wr++;
+
+	if (wr == 1)
+	    {
+		fwrook = file(i);
+		rwrook = rank(i);
+	    }
+
+	score += std_r_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
 	
 	/* bonus for being on the 7th: */
 	if (srank == 7)
-	  score += 8;
+	    {
+	      score += 8;
+              if (wr == 2 && rwrook == 7)
+	      {
+		score += 10;
+	      }
+
+	    }
 
 	/* give bonuses depending on how open the rook's file is: */
 	if (!pawns[1][pawn_file]) {
 	  /* half open file */
 	  score += 5;
+    
+	  if (wr == 2 && file(i) == fwrook)
+	      {
+		score += 12;
+	      }
+
 	  if (!pawns[0][pawn_file]) {
 	    /* open file */
 	    score += 3;
@@ -758,15 +1071,35 @@ long int mid_eval (void) {
       case (brook):
 	score -= 500;
 	br++;
+	if (br == 1)
+	    {
+		fbrook = file(i);
+		rbrook = rank(i);
+	    }
+
+	score -= std_r_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
 
 	/* bonus for being on the 7th: */
 	if (srank == 2)
-	  score -= 8;
+	    {
+		score -= 8;
+              if (wr == 2 && rbrook == 2)
+	      {
+		score -= 10;
+	      }
+	    }
 
 	/* give bonuses depending on how open the rook's file is: */
 	if (!pawns[0][pawn_file]) {
 	  /* half open file */
 	  score -= 5;
+
+	  if (br == 2 && file(i) == fbrook)
+	      {
+		score -= 12;
+	      }
+
 	  if (!pawns[1][pawn_file]) {
 	    /* open file */
 	    score -= 3;
@@ -779,34 +1112,48 @@ long int mid_eval (void) {
 	score += 325;
 	score += sbishop[i];
 	wb++;
+	score += std_r_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
+	score += bishop_mobility(i);
 	break;
 
       case (bbishop):
 	score -= 325;
 	score -= sbishop[i];
 	bb++;
+	score -= std_r_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
+	score -= bishop_mobility(i);
 	break;
 
       case (wknight):
 	score += 310;
 	score += sknight[i];
 	wn++;
+	score += std_n_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
 	break;
 
       case (bknight):
 	score -= 310;
 	score -= sknight[i];
 	bn++;
+	score -= std_n_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
 	break;
 
       case (wqueen):
 	score += 900;
 	wq++;
+	score += std_q_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
 	break;
 
       case (bqueen):
 	score -= 900;
 	bq++;
+	score -= std_q_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
 	break;
 
       case (wking):
@@ -814,8 +1161,10 @@ long int mid_eval (void) {
 
 	/* encourage castling, and give a penalty for moving the king without
 	   castling */
-	if (white_castled)
-	  score += 20;
+	if (white_castled == wcq)
+	  score += 15;
+	else if (white_castled == wck)
+	  score += 25;
 	else if (moved[30]) {
 	  score -= 10;
 	  /* make the penalty bigger if the king is open, leaving the other
@@ -828,10 +1177,12 @@ long int mid_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
+	if (file(wking_loc) != 4 && file(wking_loc) != 5)
+	{
 	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
 	  score -= 9*(white_back_pawn[pawn_file]-srank-1);
 	else
-	  score -= 16;
+	  score -= 22;
 	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
 	  score -= 8*(white_back_pawn[pawn_file+1]-srank-1);
 	else
@@ -840,7 +1191,12 @@ long int mid_eval (void) {
 	  score -= 8*(white_back_pawn[pawn_file-1]-srank-1);
 	else
 	  score -= 16;	  
-
+	}
+	else
+	{
+		/* being in center isnt great either, so correct */
+		score -= 10;
+	}
 	break;
 
       case (bking):
@@ -848,8 +1204,10 @@ long int mid_eval (void) {
 
 	/* encourage castling, and give a penalty for moving the king without
 	   castling */
-	if (black_castled)
-	  score -= 20;
+	if (black_castled == bcq)
+	  score -= 15;
+	else if (black_castled == bck)
+	  score -= 25;
 	else if (moved[114]) {
 	  score += 10;
 	  /* make the penalty bigger if the king is open, leaving the other
@@ -862,10 +1220,12 @@ long int mid_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
+	if (file(bking_loc) != 4 && file(bking_loc) != 5)
+	{
 	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
 	  score += 9*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
-	  score += 16;
+	  score += 22;
 	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])
 	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
 	else
@@ -874,7 +1234,11 @@ long int mid_eval (void) {
 	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
 	else
 	  score += 16;
-
+	}
+	else
+	{
+	  score += 10;
+	}
 	break;
     }
   }
@@ -895,14 +1259,15 @@ long int mid_eval (void) {
 
   /* if the kings are on opposite wings, or far apart, check for pawn
      storms, and open lines for heavy pieces: */
-  if ((wking_pawn_file-bking_pawn_file) > 2 ||
-      (bking_pawn_file-wking_pawn_file) > 2) {
+  if (abs(wking_pawn_file-bking_pawn_file) > 2) {
     /* black pawn storms: */
     score -= 3*(srev_rank[black_back_pawn[wking_pawn_file]]-2);
     score -= 3*(srev_rank[black_back_pawn[wking_pawn_file+1]]-2);
     score -= 3*(srev_rank[black_back_pawn[wking_pawn_file-1]]-2);
 
     /* white pawn storms: */
+    /* this has side effects on no pawns, but I guess
+       it wont hurt - GCP */
     score += 3*(white_back_pawn[bking_pawn_file]-2);
     score += 3*(white_back_pawn[bking_pawn_file+1]-2);
     score += 3*(white_back_pawn[bking_pawn_file-1]-2);
@@ -1007,6 +1372,7 @@ long int opn_eval (void) {
   long int score = 0;
   bool isolated, backwards;
   int in_cache;
+  int fwrook = 0, fbrook = 0;
 
   in_cache = 0;
   
@@ -1034,15 +1400,19 @@ long int opn_eval (void) {
     else
       a++;
 
-    pawn_file = file (i)+1;
-    srank = rank (i);
     if (board[i] == wpawn) {
+      pawn_file = file (i)+1;
+      srank = rank (i);
+    
       pawns[1][pawn_file]++;
       if (srank < white_back_pawn[pawn_file]) {
 	white_back_pawn[pawn_file] = srank;
       }
     }
     else if (board[i] == bpawn) {
+      pawn_file = file (i)+1;
+      srank = rank (i);    
+
       pawns[0][pawn_file]++;
       if (srank > black_back_pawn[pawn_file]) {
 	black_back_pawn[pawn_file] = srank;
@@ -1157,6 +1527,14 @@ long int opn_eval (void) {
 
       case (wrook):
 	score += 500;
+
+	if (!fwrook) fwrook = file(i);
+	else if (file(i) == fwrook)
+	  {
+	    /* two rooks, file at least halfopen */
+	  if (!pawns[1][pawn_file])
+	    score += 10;
+	  }
 	
 	/* bonus for being on the 7th: */
 	if (srank == 7)
@@ -1177,6 +1555,14 @@ long int opn_eval (void) {
       case (brook):
 	score -= 500;
 
+	if (!fbrook) fbrook = file(i);
+	else if (file(i) == fbrook)
+	  {
+	    /* two rooks, file at least halfopen */
+	    if (!pawns[0][pawn_file]) 
+		score -= 10;
+	  }
+
 	/* bonus for being on the 7th: */
 	if (srank == 2)
 	  score -= 8;
@@ -1196,42 +1582,58 @@ long int opn_eval (void) {
       case (wbishop):
 	score += 325;
 	score += sbishop[i];
+	score += std_b_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
+	score += bishop_mobility(i);
 	break;
 
       case (bbishop):
 	score -= 325;
 	score -= sbishop[i];
+	score -= std_b_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
+	score -= bishop_mobility(i);
 	break;
 
       case (wknight):
 	score += 310;
 	score += sknight[i];
+	score += std_n_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
 	break;
 
       case (bknight):
 	score -= 310;
 	score -= sknight[i];
+	score -= std_n_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
 	break;
 
       case (wqueen):
 	score += 900;
 
+	score += std_q_tropism[max(abs(rank(i) - rank(bking_loc)), 
+				   abs(file(i) - file(bking_loc)))];
+
 	/* a small penalty to discourage moving the queen in the opening
 	   before the other minors: */
 	if (i != 29)
 	  if (!moved[28] || !moved[27] || !moved[31] || !moved[32])
-	    score -= 4;
+	    score -= 10;
 
 	break;
 
       case (bqueen):
 	score -= 900;
 
+	score -= std_q_tropism[max(abs(rank(i) - rank(wking_loc)), 
+				   abs(file(i) - file(wking_loc)))];
+
 	/* a small penalty to discourage moving the queen in the opening
 	   before the other minors: */
 	if (i != 113)
 	  if (!moved[112] || !moved[111] || !moved[115] || !moved[116])
-	    score += 4;
+	    score += 10;
 
 	break;
 
@@ -1240,7 +1642,9 @@ long int opn_eval (void) {
 
 	/* encourage castling, and give a penalty for moving the king without
 	   castling */
-	if (white_castled)
+	if (white_castled == wcq)
+	  score += 12;
+	else if (white_castled == wck)
 	  score += 20;
 	else if (moved[30]) {
 	  score -= 15;
@@ -1257,10 +1661,13 @@ long int opn_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
+	/* only worry about cover when castled */
+	if (file(wking_loc) != 4 && file(wking_loc) != 5)
+	{
 	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
-	  score -= 6*(white_back_pawn[pawn_file]-srank-1);
+	  score -= 7*(white_back_pawn[pawn_file]-srank-1);
 	else
-	  score -= 8;
+	  score -= 14;
 	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
 	  score -= 4*(white_back_pawn[pawn_file+1]-srank-1);
 	else
@@ -1269,7 +1676,12 @@ long int opn_eval (void) {
 	  score -= 4*(white_back_pawn[pawn_file-1]-srank-1);
 	else
 	  score -= 8;	  
-
+	}
+	else
+	{
+	  score -= 7;
+	}
+	
 	break;
 
       case (bking):
@@ -1277,7 +1689,9 @@ long int opn_eval (void) {
 
 	/* encourage castling, and give a penalty for moving the king without
 	   castling */
-	if (black_castled)
+	if (black_castled == bcq)
+	  score -= 12;
+	else if (black_castled == bck)
 	  score -= 20;
 	else if (moved[114]) {
 	  score += 15;
@@ -1294,10 +1708,12 @@ long int opn_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
+	if (file(bking_loc) != 4 && file(bking_loc) != 5)
+	{
 	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
-	  score += 6*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
+	  score += 7*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
-	  score += 8;
+	  score += 14;
 	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])
 	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
 	else
@@ -1306,7 +1722,12 @@ long int opn_eval (void) {
 	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
 	else
 	  score += 8;
-
+	}
+	else
+	{
+	  score += 7;
+	}
+	
 	break;
     }
   }
@@ -1330,8 +1751,7 @@ long int opn_eval (void) {
      storms, and open lines for heavy pieces (bonuses/penalties brought
      down a bit in the opening, as it isn't a good idea to start pawn
      storming when the position is still fluid): */
-  if ((wking_pawn_file-bking_pawn_file) > 2 ||
-      (bking_pawn_file-wking_pawn_file) > 2) {
+  if (abs(bking_pawn_file-wking_pawn_file) > 2) {
     /* black pawn storms: */
     score -= srev_rank[black_back_pawn[wking_pawn_file]] - 2;
     score -= srev_rank[black_back_pawn[wking_pawn_file+1]] - 2;

@@ -29,6 +29,9 @@
 int holding[2][16];
 int num_holding[2];
 
+char realholdings[255];
+int userealholdings;
+
 int drop_piece;
 
 int white_hand_eval;
@@ -103,8 +106,82 @@ void ProcessHoldings(char str[])
 	}
       }
     }
-}
 
+  /* no fake pieces in crazyhouse! */
+  if (Variant == Bughouse && !userealholdings)
+    {
+      strncpy(realholdings, str, 200);
+
+      if (comp_color == 1)
+	{
+	  /* computer is white*/
+	  if (holding[BLACK][bpawn] == 0)
+	    {
+	      holding[BLACK][bpawn]++;
+	      num_holding[BLACK]++;
+	      HHash(bpawn, holding[BLACK][bpawn]);
+	    }
+	  if (holding[BLACK][bbishop] == 0)
+	    {
+	      holding[BLACK][bbishop]++;
+	      num_holding[BLACK]++;
+	      HHash(bpawn, holding[BLACK][bbishop]);
+	    }
+	  if (holding[BLACK][bknight] == 0)
+	  {
+	    holding[BLACK][bknight]++;
+	    num_holding[BLACK]++;
+	    HHash(bknight, holding[BLACK][bknight]);
+	  }
+	  if (holding[BLACK][brook] == 0)
+	  {
+	    holding[BLACK][brook]++;
+	    num_holding[BLACK]++;
+	    HHash(bknight, holding[BLACK][brook]);
+	  }
+	  if (holding[BLACK][bqueen] == 0)
+	  {
+	    holding[BLACK][bqueen]++;
+	    num_holding[BLACK]++;
+	    HHash(bknight, holding[BLACK][bqueen]);
+	  }
+	}
+      else
+	{
+	  /* computer is black*/
+	  if (holding[WHITE][wqueen] == 0)
+	  {
+	    holding[WHITE][wqueen]++;
+	    num_holding[WHITE]++;
+	    HHash(wqueen, holding[WHITE][wqueen]);
+	  }
+	  if (holding[WHITE][wrook] == 0)
+	  {
+	    holding[WHITE][wrook]++;
+	    num_holding[WHITE]++;
+	    HHash(wqueen, holding[WHITE][wrook]);
+	  }
+	  if (holding[WHITE][wbishop] == 0)
+	  {
+	    holding[WHITE][wbishop]++;
+	    num_holding[WHITE]++;
+	    HHash(wqueen, holding[WHITE][wbishop]);
+	  }
+	  if (holding[WHITE][wknight] == 0)
+	  {
+	    holding[WHITE][wknight]++;
+	    num_holding[WHITE]++;
+	    HHash(wqueen, holding[WHITE][wknight]);
+	  }
+	  if (holding[WHITE][wpawn] == 0)
+	  {
+	    holding[WHITE][wpawn]++;
+	    num_holding[WHITE]++;
+	    HHash(wqueen, holding[WHITE][wpawn]);
+	  }
+	}
+    }
+}
 
 int text_to_piece(char txt, int who)
 {

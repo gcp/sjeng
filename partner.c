@@ -31,6 +31,8 @@ int std_hand_value[] = { 0, 100, -100, 210, -210, 0, 0, 250, -250, 450, -450, 23
 bool piecedead;
 bool partnerdead;
 
+int must_go;
+
 void ResetHandValue(void)
 {
   memcpy(hand_value, std_hand_value, sizeof(hand_value));
@@ -49,22 +51,22 @@ void GreetPartner()
 {
   printf("tellics ptell Hello! I am Sjeng and hope you enjoy playing with me.\n");
   printf("tellics ptell For help on some commands that I understand, ptell me \'help\'\n");
-  printf("tellics ptell Please note : you *must* use ptell when talking with me, a normal tell will not work.\n");
 
   return;
 };
 
 void HandlePartner(char *input)
 {
-  if (input[7] == ' ')
+  if (input[0] == ' ')
     {
       if (!have_partner)
 	{
 	  /* catch bogus xboard repartnering */
-	  sscanf(input+8, "%s", my_partner);
+	  sscanf(input+1, "%s", my_partner);
 	  have_partner = TRUE;
 	  GreetPartner();
 	  printf("tellics set f5 bughouse\n");
+	  printf("tellics unseek\n");
 	}
     }
   else
@@ -72,7 +74,7 @@ void HandlePartner(char *input)
       memset(my_partner, 0, sizeof(my_partner));
       have_partner = FALSE;
       BegForPartner();
-      printf("tellics set f5 crazyhouse\n");
+      printf("tellics set f5 1=1\n");
     }
 };
 
@@ -83,7 +85,7 @@ void HandlePtell(char *input)
 
   if (!strncmp(input+6, "help", 4))
       {
-	printf("tellics ptell Commands that I understand are : sit, go, fast, slow, abort, flag, +/++/+++/-/--/---{p,n,b,r,q,d,h,trades}, x, dead, help.\n");
+	printf("tellics ptell Commands that I understand are : sit, go, fast, slow, abort, flag, +/++/+++/-/--/---{p,n,b,r,q,d,h,trades}, x, dead, formula, help.\n");
 	return;  
     }
   
@@ -97,11 +99,13 @@ void HandlePtell(char *input)
     {
       printf("tellics ptell Ok, I sit next move. Tell me when to go.\n");
       must_sit = TRUE;
+      must_go = 0;
     }
   else if (!strncmp(input+6, "go", 2) || (!strncmp(input+6, "move", 4)))
     {
       printf("tellics ptell Ok, I'm moving.\n");
       must_sit = FALSE;
+      must_go = 4;
     }
   else if (!strncmp(input+6, "fast", 4) || (!strncmp(input+6, "time", 4)))
     {
@@ -164,12 +168,12 @@ void HandlePtell(char *input)
 	}
       else if (strstr(input+6, "++") != NULL)
 	{
-	  change = 300;
+	  change = 1000;
 	  strcpy(howmuch, "is VERY good (ptell me 'x' to play normal again)");
 	}
       else if (strstr(input+6, "+") != NULL)
 	{
-	  change = 100;
+	  change = 150;
 	  strcpy(howmuch, "is good (ptell me 'x' to play normal again)");
 	}
       else
@@ -319,12 +323,12 @@ void HandlePtell(char *input)
 	}
       else if (strstr(input+6, "--") != NULL)
 	{
-	  change = 300;
+	  change = 1000;
 	  strcpy(howmuch, "is VERY bad (ptell me 'x' when it is no longer bad)");
 	}
       else if (strstr(input+6, "-") != NULL)
 	{
-	  change = 100;
+	  change = 150;
 	  strcpy(howmuch, "is bad (ptell me 'x' when it is no longer bad)");
 	}
       else
@@ -432,12 +436,16 @@ void HandlePtell(char *input)
 	  printf("tellics ptell Ok, Heavy %s\n", howmuch); 
 	}
     }
-  else if ((!strncmp(input+6, "x", 1) 
-       || (strstr(input+6, "mate me anymore") != NULL)
+  else if (((!strncmp(input+6, "x", 1) 
+       || (strstr(input+6, "mate me anymore") != NULL) 
+       || ((strstr(input+6, "never") != NULL) && (strstr(input+6, "mind") != NULL)))
        || (!strncmp(input+6, "=", 1))) && (strstr(input+6, "ptell me") == NULL))
     {
       printf("tellics ptell Ok, reverting to STANDARD piece values!\n");
       ResetHandValue();
+      must_sit = FALSE;
+      partnerdead = FALSE;
+      piecedead = FALSE;
     }
   else if (!strncmp(input+6, "i'll have to sit...(dead)", 25) ||
 	   !strncmp(input+6, "dead", 4))
@@ -468,6 +476,11 @@ void HandlePtell(char *input)
     {
       printf("tellics ptell Greetings.\n");
     }
+  else if (strstr(input+6, "formula") != NULL)
+  {
+     printf("tellics ptell Setting formula, if you are still interrupted, complain to my operator.\n");
+     printf("tellics set f5 bughouse\n");
+  }
   else   
     {
       printf("tellics ptell Sorry, but I don't understand that command.\n");
@@ -475,22 +488,24 @@ void HandlePtell(char *input)
   return;
 }
 
+#define CANCEL_THRESH 3
+
 void CheckBadFlow(bool reset)
 {
   move_s hismoves[MOVE_BUFF];
   move_s ourmoves[MOVE_BUFF];
-  int his_num_moves, our_num_moves, j, i;
+  int his_num_moves, our_num_moves, j, i, ic, icc;
 
   bool othermove = FALSE;
 
-  bool 
+  int 
     pawnmates = FALSE, 
     knightmates = FALSE, 
     bishopmates = FALSE, 
     rookmates = FALSE, 
     queenmates = FALSE;
   
-  static bool 
+  static int 
     pawnmated = FALSE, 
     knightmated = FALSE, 
     bishopmated = FALSE, 
@@ -514,6 +529,8 @@ void CheckBadFlow(bool reset)
       return;
     }
 
+  ic = in_check();
+
   if (!holding[!white_to_move][(white_to_move ? wpawn : bpawn)])
     {
   
@@ -526,19 +543,21 @@ void CheckBadFlow(bool reset)
 	{
 	  make(&hismoves[0], i);
 	  
-	  if (check_legal(&hismoves[0], i))
+	  if (check_legal(&hismoves[0], i, ic))
 	    {
-	      pawnmates = TRUE;
+	      pawnmates = CANCEL_THRESH;
+
+	      icc = in_check();
 	      
 	      gen(&ourmoves[0]); 
 	      our_num_moves = numb_moves;
 	      
-	      for (j = 0; (j < our_num_moves) && (pawnmates == TRUE); j++)
+	      for (j = 0; (j < our_num_moves) && (pawnmates != FALSE); j++)
 		{
 		  
 		  make(&ourmoves[0], j);
 		  
-		  if (check_legal(&ourmoves[0], j))
+		  if (check_legal(&ourmoves[0], j, icc))
 		    pawnmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j);
@@ -563,18 +582,20 @@ void CheckBadFlow(bool reset)
 	  
 	  make(&hismoves[0], i);
 	  
-	  if (check_legal(&hismoves[0], i))
+	  if (check_legal(&hismoves[0], i, ic))
 	    {
-	      knightmates = TRUE;
+	      knightmates = CANCEL_THRESH;
+
+	      icc = in_check();
 	      
 	      gen(&ourmoves[0]); 
 	      our_num_moves = numb_moves;
 	      
-	      for (j = 0; (j < our_num_moves) && (knightmates == TRUE); j++)
+	      for (j = 0; (j < our_num_moves) && (knightmates != FALSE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
-		  if (check_legal(&ourmoves[0], j))
+		  if (check_legal(&ourmoves[0], j, icc))
 		    knightmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j);
@@ -597,18 +618,20 @@ void CheckBadFlow(bool reset)
 	{
 	  make(&hismoves[0], i);
 	  
-	  if (check_legal(&hismoves[0], i))
+	  if (check_legal(&hismoves[0], i, ic))
 	    {
-	      bishopmates = TRUE;
+	      bishopmates = CANCEL_THRESH;
 	      
+	      icc = in_check();
+
 	      gen(&ourmoves[0]);
 	      our_num_moves = numb_moves;
 	      
-	      for (j = 0; (j < our_num_moves) && (bishopmates == TRUE); j++)
+	      for (j = 0; (j < our_num_moves) && (bishopmates != FALSE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
-		  if (check_legal(&ourmoves[0], j))
+		  if (check_legal(&ourmoves[0], j, icc))
 		    bishopmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j);
@@ -631,18 +654,20 @@ void CheckBadFlow(bool reset)
 	{
 	  make(&hismoves[0], i);
 	  
-	  if (check_legal(&hismoves[0], i))
+	  if (check_legal(&hismoves[0], i, ic))
 	    {
-	      rookmates = TRUE;
+	      rookmates = CANCEL_THRESH;
+
+	      icc = in_check();
 	      
 	      gen(&ourmoves[0]);
 	      our_num_moves = numb_moves;
 	      
-	      for (j = 0; (j < our_num_moves) && (rookmates == TRUE); j++)
+	      for (j = 0; (j < our_num_moves) && (rookmates != FALSE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
-		  if (check_legal(&ourmoves[0], j))
+		  if (check_legal(&ourmoves[0], j, icc))
 		    rookmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j); 
@@ -665,18 +690,20 @@ void CheckBadFlow(bool reset)
 	{
 	  make(&hismoves[0], i);
 	  
-	  if (check_legal(&hismoves[0], i))
+	  if (check_legal(&hismoves[0], i, ic))
 	    {
-	      queenmates = TRUE;
+	      queenmates = CANCEL_THRESH;
+
+	      icc = in_check();
 	      
 	      gen(&ourmoves[0]);
 	      our_num_moves = numb_moves;
 	      
-	      for (j = 0; (j < our_num_moves) && (queenmates == TRUE); j++)
+	      for (j = 0; (j < our_num_moves) && (queenmates != FALSE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
-		  if (check_legal(&ourmoves[0], j))
+		  if (check_legal(&ourmoves[0], j, icc))
 		    queenmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j); 
@@ -692,9 +719,9 @@ void CheckBadFlow(bool reset)
   /* only update if changed */
   if (pawnmates != pawnmated)
     {
-      if (pawnmates)
+      if (pawnmates == CANCEL_THRESH)
 	  pawnwarn = TRUE;
-      else
+      else if (pawnmates == 0 && pawnmated == 0)
 	{
 	  printf("tellics ptell p doesn't mate me anymore\n");
 	  othermove = TRUE;
@@ -703,9 +730,9 @@ void CheckBadFlow(bool reset)
   
   if (knightmates != knightmated)
     {
-      if (knightmates)
+      if (knightmates == CANCEL_THRESH)
 	  knightwarn = TRUE;
-      else
+      else if (knightmates == 0 && knightmated == 0)
 	{
 	  printf("tellics ptell n doesn't mate me anymore\n");
 	  othermove = TRUE;
@@ -714,9 +741,9 @@ void CheckBadFlow(bool reset)
 
   if (bishopmates != bishopmated)
     {
-      if (bishopmates)
+      if (bishopmates == CANCEL_THRESH)
 	  bishopwarn = TRUE;
-      else
+      else if (bishopmates == 0 && bishopmated == 0)
 	{
 	  printf("tellics ptell b doesn't mate me anymore\n");
 	  othermove = TRUE;
@@ -724,9 +751,9 @@ void CheckBadFlow(bool reset)
     }  
   if (rookmates != rookmated)
     {
-      if (rookmates)
+      if (rookmates == CANCEL_THRESH)
 	  rookwarn = TRUE;
-      else
+      else if (rookmates == 0 && rookmated == 0)
 	{
 	  printf("tellics ptell r doesn't mate me anymore\n");
 	  othermove = TRUE;
@@ -734,9 +761,9 @@ void CheckBadFlow(bool reset)
     }
   if (queenmates != queenmated)
     {
-      if (queenmates)
+      if (queenmates == CANCEL_THRESH)
 	  queenwarn = TRUE;
-      else
+      else if (queenmates == 0 && queenmated == 0)
 	{
 	  printf("tellics ptell q doesn't mate me anymore\n");
 	  othermove = TRUE;
@@ -760,15 +787,16 @@ void CheckBadFlow(bool reset)
   if (piecedead && othermove)
     {
       piecedead = FALSE;
-      printf("tellics ptell go");
+      printf("tellics ptell x\n");
+      printf("tellics ptell go\n");
       go_fast = FALSE;
     }
 
-  pawnmated = pawnmates;
-  rookmated = rookmates;
-  queenmated = queenmates;
-  bishopmated = bishopmates;
-  knightmated = knightmates;
+  (pawnmates) ? (pawnmated = pawnmates) : (pawnmated--);
+  (bishopmates) ? (bishopmated = bishopmates) : (bishopmated--);
+  (rookmates) ? (rookmated = rookmates) : (rookmated--);
+  (queenmates) ? (queenmated = queenmates) : (queenmated--);
+  (knightmates) ? (knightmated = knightmates) : (knightmated--);
 
   return;
 }

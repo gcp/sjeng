@@ -26,9 +26,14 @@
 #include "extvars.h"
 #include "gdbm.h"
 #include <sys/stat.h>
+#include <math.h>
 
 #define BUILDTHRESHOLD 2
-#define PLAYTHRESHOLD 5
+#define PLAYTHRESHOLD 3
+
+#ifndef HAVE_LIBGDBM
+#error You need the GNU DBM library (GDBM). Go to ftp.gnu.org
+#endif
 
 typedef struct 
 {
@@ -38,6 +43,7 @@ typedef struct
 typedef struct 
 {
   unsigned long played;
+  signed long score;
 } posinfo_t;
 
 typedef struct 
@@ -48,7 +54,9 @@ typedef struct
 unsigned long kksize;
 unsigned char *keycache;
 
-unsigned long lastbookpos, lastbooktomove;
+unsigned long bookpos[400], booktomove[400], bookidx;
+
+int gamenum;
 
 void get_header(FILE *pgnbook, pgn_header_t *pgn_header)
 {
@@ -123,6 +131,7 @@ void add_current(GDBM_FILE binbook, pgn_header_t pgn_header)
       index.dsize = sizeof(key);
       
       posinfo.played = 2;
+      posinfo.score = 0;
       
       data.dptr = (char*) &posinfo;
       data.dsize = sizeof(posinfo);
@@ -133,7 +142,7 @@ void add_current(GDBM_FILE binbook, pgn_header_t pgn_header)
 	{
 	  data = gdbm_fetch(binbook, index);
 	  
-	  pst = data.dptr;
+	  pst = (posinfo_t *) data.dptr;
 	  pst->played++;
 	  
 	  gdbm_store(binbook, index, data, GDBM_REPLACE);
@@ -156,6 +165,7 @@ void replay_game(FILE *pgnbook, GDBM_FILE binbook, pgn_header_t pgn_header)
   move_s moves[MOVE_BUFF];
   int match, num_moves, i;
   int limit = 0;
+  int ic;
   
   /* reset board */
   init_game();
@@ -263,8 +273,14 @@ void replay_game(FILE *pgnbook, GDBM_FILE binbook, pgn_header_t pgn_header)
 	   * to get a match */
 	  match = FALSE;
 	  num_moves = 0;
+          // 21-3
+	  ply = 0;
+	  
 	  gen (&moves[0]); 
 	  num_moves = numb_moves;
+
+	  ic = in_check();
+	  
 	  for (i = 0; i < num_moves; i++)
 	    {
 	      comp_to_san(moves[i], sjmove);
@@ -272,13 +288,18 @@ void replay_game(FILE *pgnbook, GDBM_FILE binbook, pgn_header_t pgn_header)
 		{
 		  /* moves matched !*/
 		  make(&moves[0], i);
+		  
 		  match = TRUE;
-		  if (check_legal(&moves[0], i))
+		  if (check_legal(&moves[0], i, ic))
 		    {
 		      break;
 		    }
 		  else
+		  {
 		    printf("Illegal move from PGN!\n");
+		    printf("Game: %d Move: %s\n", gamenum, movebuff);
+		    break;
+		  }
 		}
 	    }
 	  
@@ -286,6 +307,9 @@ void replay_game(FILE *pgnbook, GDBM_FILE binbook, pgn_header_t pgn_header)
 	  
 	  if (match == FALSE || limit > 40)
 	    {
+	      if (match == FALSE) 
+		printf("No move match! -%s-\n", movebuff);
+		
 	      /* skip junk game */
 	      while (((ch = getc(pgnbook)) != '[') && !feof(pgnbook));
 	      ungetc(ch, pgnbook);
@@ -322,7 +346,7 @@ void weed_book(GDBM_FILE binbook)
 	  nextkey = gdbm_nextkey (binbook, index);
 	  
 	  data = gdbm_fetch(binbook, index);
-	  ps = data.dptr;   
+	  ps = (posinfo_t *) data.dptr;   
 	  
 	  if ((ps->played) < PLAYTHRESHOLD) 
 	    {
@@ -369,6 +393,8 @@ void build_book (void)
     binbook = gdbm_open("nbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
   else if (Variant == Suicide)
     binbook = gdbm_open("sbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
+  else if (Variant == Losers)
+    binbook = gdbm_open("lbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
   else
     binbook = gdbm_open("zbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
     
@@ -383,6 +409,12 @@ void build_book (void)
   rinput(kks, STR_BUFF, stdin);
   
   kksize = atol(kks);
+ 
+  printf("Freeing hash and eval cache\n");
+  free_hash();
+  free_ecache();
+ 
+  printf("Allocating keycache\n");
   
   keycache = (unsigned char *) calloc(kksize, sizeof(unsigned char));
   
@@ -392,8 +424,13 @@ void build_book (void)
       exit(EXIT_FAILURE);
     }
   
+  printf("Building");
+  
+  gamenum = 0;
+  
   while (!feof(pgnbook))
     {
+      gamenum++;
       get_header(pgnbook, &pgn_header);
       replay_game(pgnbook, binbook, pgn_header);
     };
@@ -405,6 +442,9 @@ void build_book (void)
   
   fclose(pgnbook);
   gdbm_close(binbook);
+
+  alloc_hash();
+  alloc_ecache();
 }
 
 
@@ -419,9 +459,9 @@ move_s choose_binary_book_move (void)
   move_s bookmoves[MOVE_BUFF];
   int num_bookmoves;
   int raw;
-  int num_moves, i, ep;
+  int num_moves, i;
   char output[6];
-  unsigned long scores[MOVE_BUFF], best_score = 0;
+  signed long scores[MOVE_BUFF], best_score = 0;
   
   srand(time(0));
   
@@ -429,6 +469,8 @@ move_s choose_binary_book_move (void)
     binbook = gdbm_open("nbook.bin", 16384, GDBM_READER, 0, NULL);
   else if (Variant == Suicide)
     binbook = gdbm_open("sbook.bin", 16384, GDBM_READER, 0, NULL);
+  else if (Variant == Losers)
+    binbook = gdbm_open("lbook.bin", 16384, GDBM_READER, 0, NULL);
   else 
     binbook = gdbm_open("zbook.bin", 16384, GDBM_READER, 0, NULL);
     
@@ -450,29 +492,44 @@ move_s choose_binary_book_move (void)
     {
       make(&moves[0], i);
       
-      if (check_legal(&moves[0], i))
+      if (check_legal(&moves[0], i, TRUE))
 	{
+	  
+	  if (is_draw())
+	  {
+	    /* ok this is fishy: we can get a draw-by-rep
+	     * while still in book. let the search take over.
+	     * this prevents a trick where the player simply
+	     * retreats his knights and Sjeng does the same */
+	    book_ply = 50;
+
+	    printf("Anti-book-rep-trick...\n");
+	    
+	    unmake(&moves[0], i);
+	    gdbm_close(binbook);
+	    return dummy;
+	  }
 
 	  key.hashkey = (hash ^ ToMove);
-	  index.dptr = &key;
+	  index.dptr = (char*) &key;
 	  index.dsize = sizeof(key);
 	  
 	  data = gdbm_fetch(binbook, index);
 	  
 	  if (data.dptr != NULL)
 	    {
-	      ps = data.dptr;
+	      ps = (posinfo_t *) data.dptr;
 	      
 	      raw++;
 			
 	      comp_to_coord(moves[i], output);
 	      
-	      printf("Move %s: %d times played\n", output,
-		     ps->played);
+	      printf("Move %s: %ld times played, %d learned\n", output,
+		     ps->played, ps->score);
 	      
-	      if ((ps->played) >=  PLAYTHRESHOLD)
+	      if ((ps->played + ps->score) >=  PLAYTHRESHOLD)
 		{
-		  scores[num_bookmoves] = ps->played;
+		  scores[num_bookmoves] = ps->played + ps->score;
 		  bookmoves[num_bookmoves] = moves[i];
 		  num_bookmoves++;
 		}
@@ -490,9 +547,6 @@ move_s choose_binary_book_move (void)
   
   if (!num_bookmoves) 
     return dummy;
-  
-  lastbookpos = hash;
-  lastbooktomove = ToMove;
 
   /* find the top frequency: */
     for (i = 0; i < num_bookmoves; i++) {
@@ -503,8 +557,15 @@ move_s choose_binary_book_move (void)
     
     /* add some randomness to each frequency: */
     for (i = 0; i < num_bookmoves; i++) {
-      scores[i] += (int) ((float)(((float)(rand())/RAND_MAX)) 
-			  * ((float)best_score*1.25));
+      /* weed out very rare lines */
+      if (scores[i] * 15 > best_score)
+      {
+      	scores[i] += (int) ((float)(((float)(rand())/RAND_MAX)) * ((float)best_score*1.35));
+      }
+      else
+      {
+	scores[i] = 0;
+      }
     }
 
     /* now pick our best move: */
@@ -515,8 +576,18 @@ move_s choose_binary_book_move (void)
 	bestmove = bookmoves[i];
       }
     }
+  
+   /* we need to find the hash here so learning will
+    * be correct */
+  
+   make(&bestmove, 0);
+
+   bookpos[bookidx] = hash;
+   booktomove[bookidx++] = ToMove;
+
+   unmake(&bestmove, 0);
     
-    return bestmove;   
+   return bestmove;   
 }
 
 
@@ -527,17 +598,24 @@ void book_learning(int result)
   posinfo_t *ps;
   datum index;
   datum data;
-  int playinc;
+  float playinc;
+  float factor;
+  int pi;
+  int iters;
+  static const float factortable[] = {1.0, 0.5, 0.25, 0.12, 0.08, 0.05, 0.03};
 
-  if (lastbookpos == 0) return;
+  if (bookidx == 0) return;
   
   if (Variant == Normal)
-    binbook = gdbm_open("nbook.bin", 16384, GDBM_READER, 0, NULL);
+    binbook = gdbm_open("nbook.bin", 16384, GDBM_WRITER, 0, NULL);
   else if (Variant == Suicide)
-    binbook = gdbm_open("sbook.bin", 16384, GDBM_READER, 0, NULL);
-  else 
-    binbook = gdbm_open("zbook.bin", 16384, GDBM_READER, 0, NULL);
-    
+    binbook = gdbm_open("sbook.bin", 16384, GDBM_WRITER, 0, NULL);
+  else if (Variant == Losers)  
+    binbook = gdbm_open("lbook.bin", 16384, GDBM_WRITER, 0, NULL);
+  else if (Variant == Crazyhouse) 
+    binbook = gdbm_open("zbook.bin", 16384, GDBM_WRITER, 0, NULL);
+  else if (Variant == Bughouse)
+    return;
    
   if (binbook == NULL)
     {
@@ -545,56 +623,78 @@ void book_learning(int result)
       return;
     }  
 
-  key.hashkey = (lastbookpos ^ lastbooktomove);
-  index.dptr = &key;
-  index.dsize = sizeof(key);
+  iters = 0;
   
-  data = gdbm_fetch(binbook, index);
-  
-  if (data.dptr != NULL)
-    {
-      ps = data.dptr;
+  while ((iters < 7) && ((bookidx - iters) > 0))
+  {
+    iters++;
 
-      playinc = 0;
+    factor = factortable[iters-1];
+  
+    key.hashkey = (bookpos[bookidx-iters] ^ booktomove[bookidx-iters]);
+    index.dptr = (char*) &key;
+    index.dsize = sizeof(key);
+  
+    data = gdbm_fetch(binbook, index);
+  
+    if (data.dptr != NULL)
+      {
+        ps = (posinfo_t *) data.dptr;
+
+        playinc = 0;
       
-      if (result == WIN)
-	{
-	  if (my_rating <= opp_rating)
-	    playinc = 2;
-	  else
-	    playinc = 1;
-	}
-      else if (result == LOSS)
-	{
-	  if (my_rating >= opp_rating)
-	    playinc = -2;
-	  else
-	    playinc = -1;
-	}
-      else
-	{
-	  if (my_rating >= opp_rating)
-	    playinc = -1;
-	  else
-	    playinc = 1;
-	}
+        if (result == WIN)
+	  {
+	    if (my_rating <= opp_rating)
+	      playinc = 0.5 * factor;
+	    else
+	      playinc = 0.25 * factor;
+	  }
+        else if (result == LOSS)
+	  {
+	    if (my_rating >= opp_rating)
+	      playinc = -0.5 * factor;
+	    else
+	      playinc = -0.25 * factor;
+	  }
+        else
+	  {
+	    if (my_rating >= opp_rating)
+	      playinc = -0.3 * factor;
+	    else
+	      playinc = 0.3 * factor;
+	  }
+      
+        if (fabs((double)((ps->played + ps->score)) * playinc) < 1.0)
+	  {
+	    pi = (int)(playinc * 10.0);
+	  }
+        else
+	  {
+	    pi = (int)((float)(ps->played + ps->score)*(float)playinc);
+	  }
 
-      if ((ps->played + playinc) < 0)
-	playinc = -(ps->played);
+		/* don't 'overlearn' */
+	  if (abs((ps->score)+pi) < (ps->played*5))
+	  {
+      
+        printf("Learning opening %lu, played %lu, old score %ld, new score %ld\n", 
+	       bookpos[bookidx-iters], ps->played, ps->score, (ps->score)+pi);
+      
+        ps->score += pi;
+      
+        gdbm_store(binbook, index, data, GDBM_REPLACE);      
+	  }
+      
+        free(data.dptr);
+      }
+    else
+      {
+        printf("No hit in hashed book, not learning.\n");
+      }
+  }
 
-      printf("Learning opening %X, old %d, new %d\n", 
-	     lastbookpos, ps->played, (ps->played)+playinc);
-
-      ps->played += playinc;
-
-      gdbm_store(binbook, index, data, GDBM_REPLACE);      
-    
-      free(data.dptr);
-    }
-  else
-    {
-      printf("Book position disappeared during game?!?\n");
-    }
+  gdbm_close(binbook);
 
   return;
 };

@@ -28,6 +28,7 @@
 typedef struct  
 {
 unsigned long stored_hash;
+unsigned long hold_hash;
 unsigned int score;
 } ECacheType;
 
@@ -44,6 +45,7 @@ void storeECache(long int score)
   index = hash % ECacheSize;
 
   ECache[index].stored_hash = hash;
+  ECache[index].hold_hash = hash;
   ECache[index].score = score;
 }
 
@@ -55,7 +57,8 @@ void checkECache(long int *score, int *in_cache)
 
   index = hash % ECacheSize;
 
-  if(ECache[index].stored_hash == hash)
+  if(ECache[index].stored_hash == hash &&
+	  ECache[index].hold_hash == hash)
     {
       ECacheHits++;  
 
@@ -73,7 +76,20 @@ void reset_ecache(void)
 void alloc_ecache(void)
 {
   ECache = (ECacheType*)malloc(sizeof(ECacheType)*ECacheSize);
-  printf("Allocated %d eval cache entries, totalling %d bytes.\n",
+
+  if (ECache == NULL)
+  {
+    printf("Out of memory allocating ECache.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  printf("Allocated %lu eval cache entries, totalling %lu bytes.\n",
           ECacheSize, sizeof(ECacheType)*ECacheSize);
+  return;
+}
+
+void free_ecache(void)
+{
+  free(ECache);
   return;
 }

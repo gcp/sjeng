@@ -55,12 +55,12 @@
 #define Bughouse 1
 #define Normal 2
 #define Suicide 3
+#define Losers 4
 
 #define Opening      0
 #define Middlegame   1
 #define Endgame      2
 
-#define maxdepth 30
 #define mindepth 2
 
 /* define names for piece constants: */
@@ -84,8 +84,11 @@
 #define stalemate      1
 #define white_is_mated 2
 #define black_is_mated 3
+#define draw_by_fifty  4
+#define draw_by_rep    5
 
 /* arrays maybe ? */ 
+#undef FASTCALC
 #ifdef FASTCALC
 #define rank(square) ((((square)-26)/12)+1)
 #define file(square) ((((square)-26)%12)+1)
@@ -93,8 +96,12 @@
 #define rank(square) (rank[(square)])
 #define file(square) (file[(square)])
 #endif
+#define diagl(square) (diagl[(square)])
+#define diagr(square) (diagr[(square)])
 
+#ifndef INPROBECODE
 typedef enum {FALSE, TRUE} bool;
+#endif
 
 /* castle flags: */
 #define no_castle  0
@@ -104,16 +111,20 @@ typedef enum {FALSE, TRUE} bool;
 #define bcq        4
 
 typedef struct {
-  unsigned char from;
-  unsigned char target;
-  unsigned char captured;
-  unsigned char cap_num;
-  unsigned char castled;
-  unsigned char was_promoted;
-  unsigned char ep; 
-  unsigned char promoted;	      
-  unsigned char epsq;
+  int from;
+  int target;
+  int captured;
+  int promoted;	      
+  int castled;
+  int ep; 
 } move_s;
+
+typedef struct {
+  int cap_num;
+  int was_promoted;
+  int epsq;
+  int fifty;
+} move_x;
 
 #if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY)) 
 typedef struct timeb rtime_t;
@@ -122,7 +133,7 @@ typedef time_t rtime_t;
 #endif
 
 #define STR_BUFF 256
-#define MOVE_BUFF 400
+#define MOVE_BUFF 300
 #define INF 1000000
 #define PV_BUFF 100
 
@@ -138,5 +149,8 @@ typedef time_t rtime_t;
 #define LOSS 0
 #define WIN 1
 #define DRAW 2
+
+#define max(x, y) ((x) > (y) ? (x) : (y))
+#define mix(x, y) ((x) < (y) ? (x) : (y))
 
 #endif

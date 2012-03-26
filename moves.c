@@ -36,18 +36,22 @@ int gfrom;
 
 int kingcap; /* break if we capture the king */
 
-bool check_legal (move_s moves[], int m) {
+bool check_legal (move_s moves[], int m, int incheck) {
 
   /* determines if a move made was legal.  Checks to see if the player who
      just moved castled through check, or is in check.  If the move made
      was illegal, returns FALSE, otherwise, returns TRUE. */
 
   int castled = moves[m].castled;
-  
+  int from = moves[m].from;
+  int target = moves[m].target;
+  int l;
+ 
   if (Variant == Suicide) return TRUE;
 
   /* check for castling moves: */
-  if (castled) {
+  if (castled) 
+  {
     /* white kingside castling: */
     if (castled == wck) {
       if (is_attacked (30, 0)) return FALSE;
@@ -80,17 +84,363 @@ bool check_legal (move_s moves[], int m) {
 
   /* otherwise, just check on the kings: */
   /* black king: */
-  else if (white_to_move&1) {
-    if (is_attacked (bking_loc, 1)) return FALSE;
-    else return TRUE;
-  }
 
+  /* the code in here checks whether a move could
+   * have put the king in check, if he was not in
+   * check before, if not, an early exit is taken */
+  
+  else if (white_to_move&1) 
+    {
+      if (!incheck)
+	{
+	  if (moves[m].from == 0) return TRUE;
+	  
+	  switch (moves[m].promoted ? bpawn : board[target])
+	    {
+	    case bpawn:
+	      /* pawn moves, it can discover a rank or diagonal check 
+	       * a capture can also discover a file check */
+	      if (moves[m].captured != npiece)
+		{
+		  if (file(from) != file(bking_loc) 
+		      && rank(from) != rank(bking_loc)
+		      && diagl(from) != diagl(bking_loc)
+		      && diagr(from) != diagr(bking_loc))
+		    return TRUE;
+		}
+	      else
+		{
+		  if (rank(from) != rank(bking_loc)
+		      && diagl(from) != diagl(bking_loc)
+		      && diagr(from) != diagr(bking_loc))
+		    return TRUE;
+		}
+	      break;
+	    case bknight:
+	      /* discovers all */
+	      if (file(from) != file(bking_loc) 
+		  && rank(from) != rank(bking_loc)
+		  && diagl(from) != diagl(bking_loc)
+		  && diagr(from) != diagr(bking_loc))
+		return TRUE;
+	      break;
+	    case bbishop:
+	      /* always discovers file and rank
+	       * always discovers one diagonal */
+	      if (file(from) != file(bking_loc) 
+		  && rank(from) != rank(bking_loc))
+		{
+		  if (diagl(from) == diagl(target))
+		    {
+		      /* stays on diag, can only uncover check on
+		       * other diag */
+		      if (diagr(from) != diagr(bking_loc))
+			return TRUE;
+		    }
+		  else
+		    {
+		      if (diagl(from) != diagl(bking_loc))
+			return TRUE;
+		    }
+		}
+	      break;
+	    case brook:
+	      /* discovers diagonal always */
+	      /* one file or rank discovered */
+	      if (diagr(from) != diagr(bking_loc)
+		  && diagl(from) != diagl(bking_loc))
+		{
+		  /* rank move ? */
+		  if(rank(from) == rank(target))
+		    {
+		      if (file(from) != file(bking_loc))
+			return TRUE;
+		    }
+		  else
+		    {
+		      /* file move */
+		      if (rank(from) != rank(bking_loc))
+			return TRUE;
+		    }
+		}
+	      break;
+	    case bqueen:
+	    /* find out what move it was: ldiag/rdiag/file/rank*/
+	      if (file(from) == file(target))
+		{
+		  if (diagr(from) != diagr(bking_loc)
+		      && diagl(from) != diagl(bking_loc)
+		    && rank(from) != rank(bking_loc))
+		    return TRUE;	
+		}
+	       else if (rank(from) == rank(target))
+	        {
+		  if (diagr(from) != diagr(bking_loc)
+		      && file(from) != file(bking_loc)
+		      && diagl(from) != diagl(bking_loc))
+		    return TRUE;	
+	        }
+	      else if (diagl(from) == diagl(target))
+		{
+		  if (diagr(from) != diagr(bking_loc)
+		      && file(from) != file(bking_loc)
+		      && rank(from) != rank(bking_loc))
+		    return TRUE;	
+		}
+	      else if (diagr(from) == diagr(target))
+		{
+		  if (diagl(from) != diagl(bking_loc)
+		      && file(from) != file(bking_loc)
+		      && rank(from) != rank(bking_loc))
+		    return TRUE;	
+		}
+	    break;
+	    default:
+	      break;
+	    }
+
+	  /* we got so far, we know there can only be some
+	   * kind of possible discovering */
+	  /* find out what */
+	  /* we do not need to check for pawn, king or knightattacks,
+	   * as they cannot be discovered*/
+	  
+	  if (board[target] != bking)
+	  {
+	    if (file(from) == file(bking_loc))
+	    {
+	      if (bking_loc > from)
+	      {
+	      for (l = bking_loc-12; board[l] == npiece; l-=12);
+	      if (board[l] == wrook || board[l] == wqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = bking_loc+12; board[l] == npiece; l+=12);
+	      if (board[l] == wrook || board[l] == wqueen) return FALSE;
+	      }
+	    }
+	    else if (rank(from) == rank(bking_loc))
+	    {
+	      if (bking_loc > from)
+	      {
+	      for (l = bking_loc-1; board[l] == npiece; l-=1);
+	      if (board[l] == wrook || board[l] == wqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = bking_loc+1; board[l] == npiece; l+=1);
+	      if (board[l] == wrook || board[l] == wqueen) return FALSE;
+	      }
+	    }
+	    else if (diagl(from) == diagl(bking_loc))
+	    {
+	      if (bking_loc > from)
+	      {
+	      for (l = bking_loc-13; board[l] == npiece; l-=13);
+	      if (board[l] == wbishop || board[l] == wqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = bking_loc+13; board[l] == npiece; l+=13);
+	      if (board[l] == wbishop || board[l] == wqueen) return FALSE;
+	      }
+	    }
+	    else if (diagr(from) == diagr(bking_loc))
+	    {
+	      if (bking_loc > from)
+	      {
+	      for (l = bking_loc-11; board[l] == npiece; l-=11);
+	      if (board[l] == wbishop || board[l] == wqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = bking_loc+11; board[l] == npiece; l+=11);
+	      if (board[l] == wbishop || board[l] == wqueen) return FALSE;
+	      }
+	    }
+	    return TRUE;
+	  }
+	}
+      
+      if (is_attacked (bking_loc, 1)) return FALSE;
+      else return TRUE;
+    }
+  
   /* white king: */
-  else {
-    if (is_attacked (wking_loc, 0)) return FALSE;
-    else return TRUE;
-  }
+  else 
+    {
+      
+      if (!incheck)
+	{
+	  if (moves[m].from == 0) return TRUE;
+	  
+	  switch (moves[m].promoted ? wpawn : board[target])
+	    {
+	    case wpawn:
+	      /* pawn moves, it can discover a rank or diagonal check 
+	       * a capture can also discover a file check */
+	      if (moves[m].captured != npiece)
+		{
+		  if (file(from) != file(wking_loc) 
+		      && rank(from) != rank(wking_loc)
+		      && diagl(from) != diagl(wking_loc)
+		      && diagr(from) != diagr(wking_loc))
+		    return TRUE;
+		}
+	      else
+		{
+		  if (rank(from) != rank(wking_loc)
+		      && diagl(from) != diagl(wking_loc)
+		      && diagr(from) != diagr(wking_loc))
+		    return TRUE;
+		}
+	      break;
+	    case wknight:
+	      /* discovers all */
+	      if (file(from) != file(wking_loc) 
+		  && rank(from) != rank(wking_loc)
+		  && diagl(from) != diagl(wking_loc)
+		  && diagr(from) != diagr(wking_loc))
+		return TRUE;
+	      break;
+	    case wbishop:
+	      /* always discovers file and rank
+	       * always discovers one diagonal */
+	      if (file(from) != file(wking_loc) 
+		  && rank(from) != rank(wking_loc))
+		{
+		  if (diagl(from) == diagl(target))
+		    {
+		      /* stays on diag, can only uncover check on
+		       * other diag */
+		      if (diagr(from) != diagr(wking_loc))
+			return TRUE;
+		    }
+		  else
+		    {
+		      if (diagl(from) != diagl(wking_loc))
+			return TRUE;
+		    }
+		}
+	      break;
+	    case wrook:
+	    /* discovers diagonal always */
+	      /* one file or rank discovered */
+	      if (diagr(from) != diagr(wking_loc)
+		  && diagl(from) != diagl(wking_loc))
+		{
+		  /* rank move ? */
+		  if(rank(from) == rank(target))
+		    {
+		      if (file(from) != file(wking_loc))
+			return TRUE;
+		    }
+		  else
+		    {
+		      /* file move */
+		      if (rank(from) != rank(wking_loc))
+			return TRUE;
+		    }
+		}
+	      break;
+	    case wqueen:
+	      /* find out what move it was: ldiag/rdiag/file/rank*/
+	      if (file(from) == file(moves[m].target))
+		{
+		  if (diagr(from) != diagr(wking_loc)
+		      && diagl(from) != diagl(wking_loc)
+		      && rank(from) != rank(wking_loc))
+		    return TRUE;	
+		}
+	      else if (rank(from) == rank(target))
+		{
+		  if (diagr(from) != diagr(wking_loc)
+		      && file(from) != file(wking_loc)
+		      && diagl(from) != diagl(wking_loc))
+		    return TRUE;	
+		}
+	      else if (diagl(from) == diagl(target))
+		{
+		  if (diagr(from) != diagr(wking_loc)
+		      && file(from) != file(wking_loc)
+		      && rank(from) != rank(wking_loc))
+		    return TRUE;	
+		}
+	      else if (diagr(from) == diagr(target))
+		{
+		  if (diagl(from) != diagl(wking_loc)
+		      && file(from) != file(wking_loc)
+		      && rank(from) != rank(wking_loc))
+		    return TRUE;	
+		}
+	      break;
+	    default:
+	      break;
+	    }
+	  
+	  if (board[target] != wking)
+	  {
+	    if (file(from) == file(wking_loc))
+	    {
+	      if (wking_loc > from)
+	      {
+	      for (l = wking_loc-12; board[l] == npiece; l-=12);
+	      if (board[l] == brook || board[l] == bqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = wking_loc+12; board[l] == npiece; l+=12);
+	      if (board[l] == brook || board[l] == bqueen) return FALSE;
+	      }
+	    }
+	    else if (rank(from) == rank(wking_loc))
+	    {
+	      if (wking_loc > from)
+	      {
+	      for (l = wking_loc-1; board[l] == npiece; l-=1);
+	      if (board[l] == brook || board[l] == bqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = wking_loc+1; board[l] == npiece; l+=1);
+	      if (board[l] == brook || board[l] == bqueen) return FALSE;
+	      }
+	    }
+	    else if (diagl(from) == diagl(wking_loc))
+	    {
+	      if (wking_loc > from)
+	      {
+	      for (l = wking_loc-13; board[l] == npiece; l-=13);
+	      if (board[l] == bbishop || board[l] == bqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = wking_loc+13; board[l] == npiece; l+=13);
+	      if (board[l] == bbishop || board[l] == bqueen) return FALSE;
+	      }
+	    }
+	    else if (diagr(from) == diagr(wking_loc))
+	    {
+	      if (wking_loc > from)
+	      {
+	      for (l = wking_loc-11; board[l] == npiece; l-=11);
+	      if (board[l] == bbishop || board[l] == bqueen) return FALSE;
+	      }
+	      else
+	      {
+	      for (l = wking_loc+11; board[l] == npiece; l+=11);
+	      if (board[l] == bbishop || board[l] == bqueen) return FALSE;
+	      }
+	    }
+	    return TRUE;
+	  }
+	}
 
+      if (is_attacked (wking_loc, 0)) return FALSE;
+      else return TRUE;
+  }
+  
   /* should never get here .. but just so it will compile :P */
   return FALSE;
 
@@ -142,7 +492,7 @@ restart:
 	 /* pawn moves up one square: */
 	 if (board[from+12] == npiece) {
 	   /* only promotions when captures == TRUE */
-	   if (rank (from) == 7 && (Variant != Suicide)) {
+	   if (rank (from) == 7 && ((Variant != Suicide) && (Variant != Losers))) {
 	     push_pawn (from+12, FALSE);
 	   }
 	   else if (!captures) {
@@ -168,52 +518,52 @@ restart:
 	 break;
        case (wknight):
 	 /* use the knight offsets: */
-	 push_knight (from+10);
-	 push_knight (from-10);
-	 push_knight (from+14);
-	 push_knight (from-14);
-	 push_knight (from+23);
-	 push_knight (from-23);
-	 push_knight (from+25);
 	 push_knight (from-25);
+	 push_knight (from-23);
+	 push_knight (from-14);
+	 push_knight (from-10);
+	 push_knight (from+10);
+	 push_knight (from+14);
+	 push_knight (from+23);
+	 push_knight (from+25);
 	 break;
        case (wbishop):
 	 /* use the bishop offsets: */
-	 push_slide (from+13);
 	 push_slide (from-13);
-	 push_slide (from+11);
 	 push_slide (from-11);
+	 push_slide (from+11);
+	 push_slide (from+13);
 	 break;
        case (wrook):
 	 /* use the rook offsets: */
-	 push_slide (from+12);
 	 push_slide (from-12);
-	 push_slide (from+1);
 	 push_slide (from-1);
+	 push_slide (from+1);
+	 push_slide (from+12);
 	 break;
        case (wqueen):
 	 /* use the queen offsets: */
-	 push_slide (from+13);
 	 push_slide (from-13);
-	 push_slide (from+11);
-	 push_slide (from-11);
-	 push_slide (from+12);
 	 push_slide (from-12);
-	 push_slide (from+1);
+	 push_slide (from-11);
 	 push_slide (from-1);
+	 push_slide (from+1);
+	 push_slide (from+11);
+	 push_slide (from+12);
+	 push_slide (from+13);
 	 break;
        case (wking):
 	 /* use the king offsets for 'normal' moves: */
-	  push_king (from+13);
 	  push_king (from-13);
-	  push_king (from+11);
-	  push_king (from-11);
-	  push_king (from+12);
 	  push_king (from-12);
-	  push_king (from+1);
+	  push_king (from-11);
 	  push_king (from-1);
+	  push_king (from+1);
+	  push_king (from+11);
+	  push_king (from+12);
+	  push_king (from+13);
 	  /* castling moves: */
-	  if (from == 30 && !moved[30] && !captures) {
+	  if (from == 30 && !moved[30] && !captures && (Variant != Suicide || Giveaway == TRUE)) {
 	    /* kingside: */
 	    if (!moved[33] && board[33] == wrook)
 	      if (board[31] == npiece && board[32] == npiece)
@@ -253,7 +603,7 @@ restart:
 	/* pawn moves up one square: */
 	if (board[from-12] == npiece) {
 	  /* only promotions when captures == TRUE */
-	  if (rank (from) == 2 && (Variant != Suicide)) {
+	  if (rank (from) == 2 && ((Variant != Suicide) && (Variant != Losers))) {
 	    push_pawn (from-12, FALSE);
 	  }
 	  else if (!captures) {
@@ -279,52 +629,52 @@ restart:
 	  break;
       case (bknight):
 	/* use the knight offsets: */
-	push_knight (from+10);
-	push_knight (from-10);
-	push_knight (from+14);
-	push_knight (from-14);
-	push_knight (from+23);
-	push_knight (from-23);
-	push_knight (from+25);
 	push_knight (from-25);
+	push_knight (from-23);
+	push_knight (from-14);
+	push_knight (from-10);
+	push_knight (from+10);
+	push_knight (from+14);
+	push_knight (from+23);
+	push_knight (from+25);
 	  break;
       case (bbishop):
 	/* use the bishop offsets: */
-	push_slide (from+13);
 	push_slide (from-13);
-	push_slide (from+11);
 	push_slide (from-11);
+	push_slide (from+11);
+	push_slide (from+13);
 	break;
       case (brook):
 	/* use the rook offsets: */
-	push_slide (from+12);
 	push_slide (from-12);
-	push_slide (from+1);
 	push_slide (from-1);
+	push_slide (from+1);
+	push_slide (from+12);
 	break;
       case (bqueen):
 	/* use the queen offsets: */
-	push_slide (from+13);
 	push_slide (from-13);
-	push_slide (from+11);
-	push_slide (from-11);
-	push_slide (from+12);
 	push_slide (from-12);
-	push_slide (from+1);
+	push_slide (from-11);
 	push_slide (from-1);
+	push_slide (from+1);
+	push_slide (from+11);
+	push_slide (from+12);
+	push_slide (from+13);
 	break;
       case (bking):
 	  /* use the king offsets for 'normal' moves: */
-	push_king (from+13);
 	push_king (from-13);
-	push_king (from+11);
-	push_king (from-11);
-	push_king (from+12);
 	push_king (from-12);
-	push_king (from+1);
+	push_king (from-11);
 	push_king (from-1);
+	push_king (from+1);
+	push_king (from+11);
+	push_king (from+12);
+	push_king (from+13);
 	/* castling moves: */
-	if (from == 114 && !moved[114] && !captures) {
+	if (from == 114 && !moved[114] && !captures && (Variant != Suicide || Giveaway == TRUE)) {
 	  /* kingside: */
 	  if (!moved[117] && board[117] == brook)
 	    if (board[115] == npiece && board[116] == npiece)
@@ -435,14 +785,7 @@ restart:
     }
 
   if (Variant == Suicide) kingcap = FALSE;
-   
-#ifdef XSTAT
- if (!captures)
-   {
-     total_moves += *numb_moves;
-     total_movegens++;
-   };
-#endif
+  
 
 }
 
@@ -468,108 +811,483 @@ bool in_check (void) {
 
 }
 
-
-bool is_attacked (int square, int color) {
-
-  /* this function will return TRUE if square "square" is attacked by a piece
-     of color "color", and return FALSE otherwise */
-
-  static const int rook_o[4] = {12, -12, 1, -1};
-  static const int bishop_o[4] = {11, -11, 13, -13};
+bool f_in_check(move_s moves[], int m)
+{
+  int target = moves[m].target;
+  int from = moves[m].from;
+  int l;
   static const int knight_o[8] = {10, -10, 14, -14, 23, -23, 25, -25};
-  int a_sq, i;
-  int basq;
+  
+  if (Variant == Suicide) return FALSE;
 
-  /* white attacker: */
-  if (color&1) {
-    /* rook-style moves: */
-    for (i = 0; i < 4; i++) {
-      a_sq = square + rook_o[i];
-      /* the king can attack from one square away: */
-      basq = board[a_sq];
-      if (basq == wking) return TRUE;
-      /* otherwise, check for sliding pieces: */
-      while (basq != frame) {
-	if (basq == wrook || basq == wqueen) return TRUE;
-	if (basq != npiece) break;
-	a_sq += rook_o [i];
-	basq = board[a_sq];
+  if (white_to_move == 1)
+  {
+    /* is white king attacked */
+    /* we are certain the king is not in check already,
+     * as we would capture him in our ply */
+    /* thus, we need to check if our move could possibly
+     * put the king in check */
+    /* this can either be a direct check, or a discover */
+    
+	  switch (board[target])
+    {
+      case bpawn:
+	if (board[target-11] == wking || board[target-13] == wking) return TRUE;
+	break;
+      case bbishop:
+	if (diagl(target) == diagl(wking_loc))
+	{
+	  /* possible left diag check */
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+13; board[l] == npiece; l +=13);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  	for (l = wking_loc-13; board[l] == npiece; l -=13);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	else if (diagr(target) == diagr(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+11; board[l] == npiece; l +=11);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+		for (l = wking_loc-11; board[l] == npiece; l -=11);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case brook:
+	if (file(target) == file(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+12; board[l] == npiece; l +=12);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+		for (l = wking_loc-12; board[l] == npiece; l -=12);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	else if (rank(target) == rank(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+1; board[l] == npiece; l++);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  	for (l = wking_loc-1; board[l] == npiece; l--);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case bknight:
+	 for (l = 0; l < 8; l++) 
+	   if ((wking_loc + knight_o[l]) == target) return TRUE;
+	break;
+      case bqueen:
+	if (file(target) == file(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+12; board[l] == npiece; l +=12);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  	for (l = wking_loc-12; board[l] == npiece; l -=12);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	else if (rank(target) == rank(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+1; board[l] == npiece; l +=1);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  	for (l = wking_loc-1; board[l] == npiece; l -=1);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	else if (diagl(target) == diagl(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+13; board[l] == npiece; l +=13);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  	for (l = wking_loc-13; board[l] == npiece; l -=13);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	else if (diagr(target) == diagr(wking_loc))
+	{
+	  if (wking_loc < target)
+	  {
+	  	for (l = wking_loc+11; board[l] == npiece; l +=11);
+	  	if (l == target) return TRUE;
+	  }
+	  else
+	  {  
+	  	for (l = wking_loc-11; board[l] == npiece; l -=11);
+	  	if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case bking:
+	/* can only discover checks */
+	/* castling is tricky */
+	if (moves[m].castled) 
+	  {
+	    if (is_attacked (wking_loc, 0)) 
+	      return TRUE;
+	    else
+	      return FALSE;
+	  }
+	break;
+    }
+
+    /* drop move can never discover check */
+    if (from == 0) return FALSE;
+
+    /* this checks for discovered checks */
+    if (rank(from) == rank(wking_loc))
+    {
+      if (wking_loc > from)
+      {
+    	for (l = wking_loc-1; board[l] == npiece; l--);    
+	if (board[l] == brook || board[l] == bqueen) return TRUE;
+      }
+      else
+      {
+	for (l = wking_loc+1; board[l] == npiece; l++);
+	if (board[l] == brook || board[l] == bqueen) return TRUE;
       }
     }
-
-    /* bishop-style moves: */
-    for (i = 0; i < 4; i++) {
-      a_sq = square + bishop_o[i];
-      basq = board[a_sq];
-      /* check for pawn attacks: */
-      if (basq == wpawn && (i&1)) return TRUE;
-      /* the king can attack from one square away: */
-      if (basq == wking) return TRUE;
-      while (basq != frame) {
-	if (basq == wbishop || basq == wqueen) return TRUE;
-	if (basq != npiece) break;
-	a_sq += bishop_o [i];
-	basq = board[a_sq];
+    else if (file(from) == file(wking_loc))
+    {
+      if (wking_loc > from)
+      {
+        for (l = wking_loc-12; board[l] == npiece; l-=12);    
+	if (board[l] == brook || board[l] == bqueen) return TRUE;
+      }
+      else
+      {
+	for (l = wking_loc+12; board[l] == npiece; l+=12);
+	if (board[l] == brook || board[l] == bqueen) return TRUE;
+	}
+    }
+    else if (diagl(from) == diagl(wking_loc))
+    {
+      if (wking_loc > from)
+      {
+       for (l = wking_loc-13; board[l] == npiece; l-=13);    
+       if (board[l] == bbishop || board[l] == bqueen) return TRUE;
+      }
+      else
+      {
+       for (l = wking_loc+13; board[l] == npiece; l+=13);
+       if (board[l] == bbishop || board[l] == bqueen) return TRUE;
       }
     }
-
-    /* knight-style moves: */
-    for (i = 0; i < 8; i++) {
-      a_sq = square + knight_o[i];
-      if (board[a_sq] == wknight) return TRUE;
-    }
-
-    /* if we haven't hit a white attacker by now, there are none: */
+    else if (diagr(from) == diagr(wking_loc))
+    {
+      if (wking_loc > from)
+      {
+       for (l = wking_loc-11; board[l] == npiece; l-=11);    
+       if (board[l] == bbishop || board[l] == bqueen) return TRUE;
+      }
+      else
+      {
+       for (l = wking_loc+11; board[l] == npiece; l+=11);
+       if (board[l] == bbishop || board[l] == bqueen) return TRUE;
+      }
+     }    
+    
     return FALSE;
 
+    //if (is_attacked (wking_loc, 0)) 
+    //return TRUE;
   }
+  else
+  {
+    /* is black king attacked */
+    switch (board[target])
+    {
+      case wpawn:
+	if (board[target+11] == bking || board[target+13] == bking) return TRUE;
+	break;
+      case wbishop:
+	if (diagl(target) == diagl(bking_loc))
+	{
+	  /* possible left diag check */
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+13; board[l] == npiece; l +=13);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-13; board[l] == npiece; l -=13);
+	  if (l == target) return TRUE;
+	  }
+	}
+	else if (diagr(target) == diagr(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+11; board[l] == npiece; l +=11);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-11; board[l] == npiece; l -=11);
+	  if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case wrook:
+	if (file(target) == file(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+12; board[l] == npiece; l +=12);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-12; board[l] == npiece; l -=12);
+	  if (l == target) return TRUE;
+	  }
+	}
+	else if (rank(target) == rank(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+1; board[l] == npiece; l++);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-1; board[l] == npiece; l--);
+	  if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case wknight:
+	 for (l = 0; l < 8; l++) 
+	   if ((bking_loc + knight_o[l]) == target) return TRUE;
+	break;
+      case wqueen:
+	if (file(target) == file(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+12; board[l] == npiece; l +=12);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-12; board[l] == npiece; l -=12);
+	  if (l == target) return TRUE;
+	  }
+	}
+	else if (rank(target) == rank(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+1; board[l] == npiece; l +=1);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-1; board[l] == npiece; l -=1);
+	  if (l == target) return TRUE;
+	  }
+	}
+	else if (diagl(target) == diagl(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+13; board[l] == npiece; l +=13);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-13; board[l] == npiece; l -=13);
+	  if (l == target) return TRUE;
+	  }
+	}
+	else if (diagr(target) == diagr(bking_loc))
+	{
+	  if (bking_loc < target)
+	  {
+	  for (l = bking_loc+11; board[l] == npiece; l +=11);
+	  if (l == target) return TRUE;
+	  }
+	  else
+	  {
+	  for (l = bking_loc-11; board[l] == npiece; l -=11);
+	  if (l == target) return TRUE;
+	  }
+	}
+	break;
+      case wking:
+	/* can only discover checks */
+	if (moves[m].castled)
+	  { 
+	    if (is_attacked (bking_loc, 1)) 
+	      return TRUE;
+	    else
+	      return FALSE;
+	  }
+	break;
+    }
 
-  /* black attacker: */
-  else {
-    /* rook-style moves: */
-    for (i = 0; i < 4; i++) {
-      a_sq = square + rook_o[i];
-      basq = board[a_sq];
-      /* the king can attack from one square away: */
-      if (basq == bking) return TRUE;
-      /* otherwise, check for sliding pieces: */
-      while (basq != frame) {
-	if (basq == brook || basq == bqueen) return TRUE;
-	if (basq != npiece) break;
-	a_sq += rook_o [i];
-	basq = board[a_sq];
+    if (from == 0) return FALSE;
+
+    /* this checks for discovered checks */
+    if (rank(from) == rank(bking_loc))
+    {
+      if (bking_loc > from)
+      {
+    	for (l = bking_loc-1; board[l] == npiece; l--);    
+	if (board[l] == wrook || board[l] == wqueen) return TRUE;
+      }
+      else
+      {
+	for (l = bking_loc+1; board[l] == npiece; l++);
+	if (board[l] == wrook || board[l] == wqueen) return TRUE;
       }
     }
-
-    /* bishop-style moves: */
-    for (i = 0; i < 4; i++) {
-      a_sq = square + bishop_o[i];
-      basq = board[a_sq];
-      /* check for pawn attacks: */
-      if (basq == bpawn && !(i&1)) return TRUE;
-      /* the king can attack from one square away: */
-      if (basq == bking) return TRUE;
-      while (basq != frame) {
-	if (basq == bbishop || basq == bqueen) return TRUE;
-	if (basq != npiece) break;
-	a_sq += bishop_o [i];
-	basq = board[a_sq];
+    else if (file(from) == file(bking_loc))
+    {
+      if (bking_loc > from)
+      {
+	for (l = bking_loc-12; board[l] == npiece; l-=12);    
+	if (board[l] == wrook || board[l] == wqueen) return TRUE;
+      }
+      else
+      {
+	for (l = bking_loc+12; board[l] == npiece; l+=12);
+	if (board[l] == wrook || board[l] == wqueen) return TRUE;
       }
     }
-
-    /* knight-style moves: */
-    for (i = 0; i < 8; i++) {
-      a_sq = square + knight_o[i];
-      if (board[a_sq] == bknight) return TRUE;
+    else if (diagl(from) == diagl(bking_loc))
+    {
+      if (bking_loc > from)
+      {
+	for (l = bking_loc-13; board[l] == npiece; l-=13);    
+       if (board[l] == wbishop || board[l] == wqueen) return TRUE;
+      }
+      else
+      {
+       for (l = bking_loc+13; board[l] == npiece; l+=13);
+       if (board[l] == wbishop || board[l] == wqueen) return TRUE;
+      }
     }
-
-    /* if we haven't hit a black attacker by now, there are none: */
+    else if (diagr(from) == diagr(bking_loc))
+    {
+      if (bking_loc > from)
+      {
+	for (l = bking_loc-11; board[l] == npiece; l-=11);    
+       if (board[l] == wbishop || board[l] == wqueen) return TRUE;
+      }
+      else
+      {
+       for (l = bking_loc+11; board[l] == npiece; l+=11);
+       if (board[l] == wbishop || board[l] == wqueen) return TRUE;
+      }
+    }
+    
     return FALSE;
 
+    // if (is_attacked (bking_loc, 1)) 
+    // display_board(stdout, 1);//return TRUE;
   }
-
 }
 
+int extended_in_check(void)
+{
+  register int sq;
+  static const int knight_o[8] = {10, -10, 14, -14, 23, -23, 25, -25};
+  
+  if (Variant == Suicide) return 0;
+  
+  if (white_to_move == 1) 
+  {
+    sq = board[wking_loc-12];
+    if (sq == brook || sq == bqueen) return 2;
+    sq = board[wking_loc-1];
+    if (sq == brook || sq == bqueen) return 2;
+    sq = board[wking_loc+1];
+    if (sq == brook || sq == bqueen) return 2;
+    sq = board[wking_loc+12];
+    if (sq == brook || sq == bqueen) return 2;
+    sq = board[wking_loc+13];
+    if (sq == bbishop || sq == bqueen || sq == bpawn) return 2;
+    sq = board[wking_loc+11];
+    if (sq == bbishop || sq == bqueen || sq == bpawn) return 2;
+    sq = board[wking_loc-11];
+    if (sq == bbishop || sq == bqueen) return 2;
+    sq = board[wking_loc-13];
+    if (sq == bbishop || sq == bqueen) return 2;
+    for (sq = 0; sq < 8; sq++) 
+    {
+      if (board[wking_loc + knight_o[sq]] == bknight) return 2;
+    }
+    if (is_attacked (wking_loc, 0)) 
+    {
+      if (Variant == Normal || Variant == Losers) return 2;
+      else return 1;
+    }
+  }
+  else 
+  {
+    sq = board[bking_loc-12];
+    if (sq == wrook || sq == wqueen) return 2;
+    sq = board[bking_loc-1];
+    if (sq == wrook || sq == wqueen) return 2;
+    sq = board[bking_loc+1];
+    if (sq == wrook || sq == wqueen) return 2;
+    sq = board[bking_loc+12];
+    if (sq == wrook || sq == wqueen) return 2;
+    sq = board[bking_loc-13];
+    if (sq == wbishop || sq == wqueen || sq == wpawn) return 2;
+    sq = board[bking_loc-11];
+    if (sq == wbishop || sq == wqueen || sq == wpawn) return 2;
+    sq = board[bking_loc+11];
+    if (sq == wbishop || sq == wqueen) return 2;
+    sq = board[bking_loc+13];
+    if (sq == wbishop || sq == wqueen) return 2;
+    for (sq = 0; sq < 8; sq++) 
+    {
+      if (board[bking_loc + knight_o[sq]] == wknight) return 2;
+    }
+    if (is_attacked (bking_loc, 1)) 
+    {
+      if (Variant == Normal || Variant == Losers) return 2;
+      else return 1;
+    }
+  }
+
+  return 0;
+};
 
 void make (move_s moves[], int i) {
 
@@ -585,14 +1303,27 @@ void make (move_s moves[], int i) {
   promoted = moves[i].promoted;
   castled = moves[i].castled;
 
-  if ((moves[i].target == 0) || ((moves[i].from != 0) && (board[moves[i].from] == npiece)))
-    return;
+  //if ((moves[i].target == 0) || ((moves[i].from != 0) && ((board[moves[i].from] == npiece) || board[moves[i].from] == frame)))
+ //   DIE;
   
   /* clear the en passant rights: */
-  moves[i].epsq = ep_square;
+  path_x[ply].epsq = ep_square;
 
   ep_square = 0;
 
+  /* update the 50 move info: */
+  path_x[ply].fifty = fifty;
+
+  /* ignore piece drops...50move draw wont happen anyway */
+  if (board[from] == wpawn || board[from] == bpawn || board[target] != npiece) 
+  {
+    fifty = 0;
+  }
+  else 
+  {
+    fifty++;
+  }
+  
   if (from == 0)   
     { /* drop move */
       /* Drop moves are handled fully seperate because we exepect to encouter
@@ -610,14 +1341,15 @@ void make (move_s moves[], int i) {
       /* add to piece array, set piece-square pointer */
       pieces[find_slot] = target;
 
-      moves[i].was_promoted = is_promoted[find_slot];
+      path_x[ply].was_promoted = is_promoted[find_slot];
       is_promoted[find_slot] = 0;
       
       /* set square->piece pointer */
       squares[target] = find_slot;
-	
-      /*      if (promoted <= frame || promoted >= npiece)
-      	DIE;*/
+    //  moved[target] = 1;
+      
+      //if (promoted <= frame || promoted >= npiece)
+     // 	DIE;
 
       assert(promoted > frame && promoted < npiece);
      
@@ -632,17 +1364,18 @@ void make (move_s moves[], int i) {
       Hash(promoted,target);
 
       white_to_move ^= 1;
-
+      ply++;
+      
       return;
     }
   else
     {
 
-      moves[i].was_promoted = is_promoted[squares[target]];
+      path_x[ply].was_promoted = is_promoted[squares[target]];
 
       /* update the "general" pieces[] / squares[] info (special moves need
 	 special handling later): */
-      moves[i].cap_num = squares[target];
+      path_x[ply].cap_num = squares[target];
       pieces[squares[target]] = 0;
       pieces[squares[from]] = target;
       squares[target] = squares[from];
@@ -655,9 +1388,9 @@ void make (move_s moves[], int i) {
 	case (npiece): break;
 	default:
 	  
-	  if (Variant != Normal)
+	  if (Variant == Bughouse || Variant == Crazyhouse)
 	    {
-	      if (moves[i].was_promoted)
+	      if (path_x[ply].was_promoted)
 	    	{
 		  addHolding(SwitchPromoted(board[target]), ToMove);
 	    	}
@@ -697,6 +1430,8 @@ void make (move_s moves[], int i) {
 	  RemoveMaterial(wpawn);
 	  AddMaterial(promoted);
 
+	  ply++;
+	  
 	  return;
 	}
 
@@ -723,11 +1458,13 @@ void make (move_s moves[], int i) {
 	  moved[from]++;
 	  moved[target-12]++;
 	  white_to_move ^= 1;
-	  moves[i].cap_num = squares[target-12];
+	  path_x[ply].cap_num = squares[target-12];
 
 	  pieces[squares[target-12]] = 0;
 	  squares[target-12] = 0;
 
+	  ply++;
+	  
 	  return;
 	}
 	
@@ -744,6 +1481,9 @@ void make (move_s moves[], int i) {
 	moved[target]++;
 	moved[from]++;
 	white_to_move ^= 1;
+	
+	ply++;
+	
 	return;
 	
       }
@@ -768,6 +1508,8 @@ void make (move_s moves[], int i) {
 	  RemoveMaterial(bpawn);
 	  AddMaterial(promoted);
 
+	  ply++;
+	  
 	  return;
 	}
 	
@@ -794,9 +1536,12 @@ void make (move_s moves[], int i) {
 	  moved[from]++;
 	  moved[target+12]++;
 	  white_to_move ^= 1;
-	  moves[i].cap_num = squares[target+12];
+	  path_x[ply].cap_num = squares[target+12];
 	  pieces[squares[target+12]] = 0;
 	  squares[target+12] = 0;
+	  
+	  ply++;
+	  
 	  return;
 	}
 	
@@ -814,6 +1559,8 @@ void make (move_s moves[], int i) {
 	Hash(bpawn, from);
 	Hash(bpawn, target);
 
+        ply++;
+	
 	return;
       }
       
@@ -828,6 +1575,9 @@ void make (move_s moves[], int i) {
 	moved[target]++;
 	moved[from]++;
 	white_to_move ^= 1;
+	
+	ply++;
+	
 	return;
       }
 
@@ -862,6 +1612,8 @@ void make (move_s moves[], int i) {
 	  Hash(wrook, 33);
 	  Hash(wrook, 31);
 
+          ply++;
+	  
 	  return;
 	}
 	
@@ -878,9 +1630,13 @@ void make (move_s moves[], int i) {
 
 	  Hash(wrook, 26);
 	  Hash(wrook, 29);
+	 
+          ply++;
 	  
 	  return;
 	}
+
+	ply++;
 	
 	return;
       }
@@ -915,6 +1671,8 @@ void make (move_s moves[], int i) {
 	  Hash(brook, 117);
 	  Hash(brook, 115);
 
+	  ply++;
+	  
 	  return;
 	}
 
@@ -932,9 +1690,13 @@ void make (move_s moves[], int i) {
 	  Hash(brook, 110);
 	  Hash(brook, 113);
 
+          ply++;
+	  
 	  return;
 	}
       }
+    ply++;
+      
     return;
   }
 }
@@ -1177,10 +1939,17 @@ void unmake (move_s moves[], int i) {
   promoted = moves[i].promoted;
   castled = moves[i].castled;
 
-  if ((moves[i].target == 0) || ((moves[i].target != 0) && (board[moves[i].target] == npiece)))
-     return;
-    
-  ep_square = moves[i].epsq;
+  //if ((moves[i].target == 0) || ((moves[i].target != 0) && (board[moves[i].target] == npiece)))
+  //   DIE;
+
+  ply--;
+ 
+//printf("%d ", ply);
+  
+  ep_square = path_x[ply].epsq;
+  
+  /* update the 50 move info: */
+  fifty = path_x[ply].fifty;
   
   if (from == 0)   /* drop move */
     {
@@ -1192,11 +1961,12 @@ void unmake (move_s moves[], int i) {
        /* remove from piece array, unset piece-square pointer */
 
        pieces[squares[target]] = 0;
-       is_promoted[squares[target]] = moves[i].was_promoted;
+       is_promoted[squares[target]] = path_x[ply].was_promoted;
        
        /* unset square->piece pointer */
        squares[target] = 0;
-
+  //     moved[target] = 0;
+       
        piece_count--;
 
        assert(promoted < npiece && promoted > frame);
@@ -1221,11 +1991,11 @@ void unmake (move_s moves[], int i) {
 	 special handling later): */
       
       squares[from] = squares[target];
-      squares[target] = moves[i].cap_num;
+      squares[target] = path_x[ply].cap_num;
       pieces[squares[target]] = target;
       pieces[squares[from]] = from;
-      
-      is_promoted[squares[target]] = moves[i].was_promoted;
+
+      is_promoted[squares[target]] = path_x[ply].was_promoted;
       
       /* update the piece count for determining opening/middlegame/endgame stage */
       if (!ep)
@@ -1234,7 +2004,7 @@ void unmake (move_s moves[], int i) {
 	  case (npiece): break;
 	  default:
 	    
-	    if (Variant != Normal)
+	    if (Variant == Bughouse || Variant == Crazyhouse)
 	      {
 		if (is_promoted[squares[target]])
 		  {
@@ -1277,8 +2047,8 @@ void unmake (move_s moves[], int i) {
 	  moved[from]--;
 	  moved[target-12]--;
 	  white_to_move ^= 1;
-	  squares[target-12] = moves[i].cap_num;
-	  pieces[moves[i].cap_num] = target-12;
+	  squares[target-12] = path_x[ply].cap_num;
+	  pieces[path_x[ply].cap_num] = target-12;
 	  squares[target] = 0;
 	  return;
 	}
@@ -1318,8 +2088,8 @@ void unmake (move_s moves[], int i) {
 	  moved[from]--;
 	  moved[target+12]--;
 	  white_to_move ^= 1;
-	  squares[target+12] = moves[i].cap_num;
-	  pieces[moves[i].cap_num] = target+12;
+	  squares[target+12] = path_x[ply].cap_num;
+	  pieces[path_x[ply].cap_num] = target+12;
 	  squares[target] = 0;
 	  return;
 	}

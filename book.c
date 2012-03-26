@@ -56,6 +56,8 @@ int init_book (void) {
    memset(book_flags, 0, sizeof(book_flags));
    memset(book, 0, sizeof(book));
 
+   num_book_lines = 0;
+   
    /* init our random numbers: */
    srand((unsigned) time (NULL));
 
@@ -74,6 +76,11 @@ int init_book (void) {
        if ((f_book = fopen ("suicide.opn", "r")) == NULL)
 	 return FALSE;
      }
+   else if (Variant == Losers)
+   {
+       if ((f_book = fopen ("losers.opn", "r")) == NULL)
+	 return FALSE;
+   }
    else
      {
        if ((f_book = fopen ("bug.opn", "r")) == NULL)
@@ -173,6 +180,7 @@ move_s choose_book_move (void) {
    char possible_move[5], coord_move[5];
    move_s book_replies[4000], moves[400];
    char force_move = FALSE;
+   int ic;
 
    srand(time(0));
 
@@ -208,19 +216,23 @@ move_s choose_book_move (void) {
 		strncpy(possible_move, book[i] + (book_ply * 4), 4);
 		possible_move[4] = '\0';
 		
-		for (j = 0; j < num_moves; j++) {
-		  comp_to_coord(moves[j], coord_move);
-		   
-		  if (!strcmp(possible_move, coord_move)) {
-		    make(&moves[0], j);
-		    if (check_legal(&moves[0], j)) {
-		      book_replies[num_replies++] = moves[j];
-		      book_match = TRUE;
-		    }
-		    unmake(&moves[0], j);
+		for (j = 0; j < num_moves; j++) 
+		  {
+		    comp_to_coord(moves[j], coord_move);
+		    
+		    if (!strcmp(possible_move, coord_move)) 
+		      {                      
+			ic = in_check();
+			make(&moves[0], j);
+			if (check_legal(&moves[0], j, ic)) 
+			  {
+			    book_replies[num_replies++] = moves[j];
+			    book_match = TRUE;
+			  }
+			unmake(&moves[0], j);
+		      }
 		  }
-		}
-	    }
+	      }
 	  }
       }
       /* we can exit the search for a book move early, if we've no longer

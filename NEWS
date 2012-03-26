@@ -1,3 +1,91 @@
+Sjeng 10.0
+
+Lots of stability improvements
+Minor fix to legal move detection
+Constrain book learning a little
+Updated losers and suicide OPN books
+
+Sjeng 9.2
+
+Endgame tablebase support (Nalimov up to 6 man)
+Castling in giveaway is now recognized
+Fixes some lockups in suicide/giveaway
+More standard chess knowledge (mobility, passed pawns)
+Smaller aspiration window
+Fix to 'st' command
+Updated docs
+Fixes to draw detection
+Cull very rare book lines
+Full losers support
+Detect when nullmove is probably bad
+Less futility pruning in qsearch
+
+Sjeng 9.1
+
+Bugfix to time allocation
+Improved speed benchmark
+Bugfix: may not castle in suicide (dunno about giveaway)
+Optimized legal move and incheck tests
+Added bonus for doubled rooks on (half)open file
+King tropisms for normal chess
+Updated suicide opening book
+
+Sjeng 9.0
+
+More output during analysis
+Support for future winboard protocols
+Tecumseh pruning, smarter check extensions
+Delay in ptells for mating pieces
+Smarter handling of depth-preferenced stores
+Free hash/ecache before bookbuild
+Tweaks and bugfixes to movegen
+Fix in bookbuilding
+Platform independent hashes
+Extend time on fail-low
+Got rid of suicide learning (not used anyway)
+Display settings code on servers
+Static Exchange Evaluation sorting and pruning
+Root move sort based on nodecount
+Use ghost piece to anticipate trades
+Aggressive backpropagating booklearning
+Tweaks to kingsafety in standard chess
+Reply immediately on a forced move
+Partly merged Dawson eval
+Allow setting SmartEval and Attackeval
+Support st command
+Inform partner when trades are bad
+Fixed fast mode
+Fixed warnings in source
+Allowing switching to PN2 via a #define
+Squares macros added for easy eval editing
+Workaround for WinBoard/XBoard zippy bug
+Fixes for losers movegen
+
+Sjeng 8.6
+
+Pick new move if search fails high and times out
+Optimized QSearch ttable usage
+
+Sjeng 8.5
+
+Quiescent hashing
+Fixed book learning
+Support for losers's chess
+Extension tweaks
+
+Sjeng 8.3
+
+Fixed serious hashing bug
+Improved moveordering
+Improved handling of failed searches
+More book randomness
+More aggressive book learning
+Fixes to Winboard support
+Detection of Chessbase Winboard adapter
+Recapture extensions
+Cleaned up some internal structures
+Recognizes 50-move and 3-rep draws
+
 Sjeng 8.0
 
 Much improved crazyhouse evaluation

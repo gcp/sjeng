@@ -184,6 +184,7 @@ void setup_epd_line(char* inbuff)
     }
 
   reset_piece_square();
+  initialize_hash();
 
 }
 
@@ -192,6 +193,8 @@ int check_solution(char *inbuff, move_s cmove)
   char san[STR_BUFF];
   
   comp_to_san(cmove, san);
+ 
+//  printf("Sjeng's move: %s, EPD line: %s\n", san, strstr(inbuff,"bm"));
   
   if (strstr(inbuff, "bm") != NULL)
     {
@@ -244,7 +247,7 @@ void run_epd_testsuite(void)
   while (fgets(readbuff, 2000, testsuite) != NULL)
     {
       tested++;
-			
+
       setup_epd_line(readbuff);
 
       root_to_move = ToMove;
@@ -268,16 +271,16 @@ void run_epd_testsuite(void)
       
       fixed_time = thinktime;
       
-      cpu_start = clock();
-      comp_move = think();
-      cpu_end = clock();
+       cpu_start = clock();
+       comp_move = think();
+       cpu_end = clock();
       
 
       printf ("\nNodes: %ld (%0.2f%% qnodes)\n", nodes,
 	      (float) ((float) qnodes / (float) nodes * 100.0));
       
-      elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
-      nps = (float) nodes/(float) elapsed;
+      elapsed = (cpu_end-cpu_start)/(float) CLOCKS_PER_SEC;
+      nps = (int)((float) nodes/(float) elapsed);
       
       if (!elapsed)
 	printf ("NPS: N/A\n");
@@ -295,11 +298,10 @@ void run_epd_testsuite(void)
       printf("NTries : %d  NCuts : %d  CutRate : %f%%  TExt: %d\n", 
 	     NTries, NCuts, (((float)NCuts*100)/((float)NTries+1)), TExt);
       
-      printf("DeltaTries : %d  DeltaCuts : %d  CutRate : %f%%\n",
-	     DeltaTries, DeltaCuts, 
-	     ((float)(DeltaCuts*100)/(((float)DeltaTries+1))));
-      
       printf("Check extensions: %ld  Razor drops : %ld  Razor Material : %ld\n", ext_check, razor_drop, razor_material);
+      printf("EGTB Hits: %d  EGTB Probes: %d  Efficiency: %3.1f%%\n", EGTBHits, EGTBProbes,
+             (((float)EGTBHits*100)/(float)(EGTBProbes+1)));		 
+      
       printf("Move ordering : %f%%\n", (((float)FHF*100)/(float)FH+1));
       
       printf("Material score: %d   Eval : %d\n", Material, eval());

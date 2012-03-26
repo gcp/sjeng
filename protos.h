@@ -25,20 +25,26 @@
 #define PROTOS_H
 
 long int allocate_time (void);
-bool check_legal (move_s moves[], int m);
+bool check_legal (move_s moves[], int m, int incheck);
 void comp_to_coord (move_s move, char str[]);
 void display_board (FILE *stream, int color);
 long int end_eval (void);
-long int eval (void);
 long int seval(void);
+long int std_eval (void);
+long int suicide_eval (void);
+long int losers_eval (void);
+long int eval (void);
 void gen (move_s moves[]);
 void ics_game_end (void);
 bool in_check (void);
+bool f_in_check (move_s moves[], int m);
+int extended_in_check (void);
 void init_game (void);
 bool is_attacked (int square, int color);
+bool nk_attacked (int square, int color);
 bool is_move (char str[]);
 void make (move_s moves[], int i);
-void order_moves (move_s moves[], long int move_ordering[], int num_moves, int best);
+void order_moves (move_s moves[], long int move_ordering[], long int see_values[], int num_moves, int best);
 long int mid_eval (void);
 long int opn_eval (void);
 long int suicide_mid_eval(void);
@@ -66,9 +72,10 @@ void rdelay (int time_in_s);
 long int rdifftime (rtime_t end, rtime_t start);
 bool remove_one (int *marker, long int move_ordering[], int num_moves);
 void reset_piece_square (void);
+void check_piece_square (void);
 void rinput (char str[], int n, FILE *stream);
 rtime_t rtime (void);
-long int search (int alpha, int beta, int depth, bool is_null);
+long int search (int alpha, int beta, int depth, int is_null);
 move_s search_root (int alpha, int beta, int depth);
 void start_up (void);
 move_s think (void);
@@ -78,6 +85,7 @@ void tree_debug (void);
 void unmake (move_s moves[], int i);
 bool verify_coord (char input[], move_s *move);
 
+bool is_draw(void);
 
 void ProcessHoldings(char line[]);
 void addHolding(int what, int who);
@@ -103,8 +111,10 @@ int init_book(void);
 move_s choose_book_move(void);
 move_s choose_binary_book_move(void);
 
-void StoreTT(int score, int alpha, int beta, int best, int threat, int depth);
+void StoreTT(int score, int alpha, int beta, int best , int threat, int depth);
+void QStoreTT(int score, int alpha, int beta, int best);
 int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull, int depth);
+int QProbeTT(int *score, int alpha, int beta, int *best);
 void LearnStoreTT(int score, unsigned nhash, unsigned hhash, int tomove, int best, int depth);
 
 void LoadLearn(void);
@@ -142,8 +152,20 @@ void proofnumbersearch(void);
 
 void alloc_hash(void);
 void alloc_ecache(void);
+void free_hash(void);
+void free_ecache(void);
 void read_rcfile(void);
 
 void book_learning(int result);
+void seedMT(unsigned long seed);
+unsigned long randomMT(void);
+
+void setup_epd_line(char* inbuff);
+
+int see(int color, int square, int from);
+
+void init_egtb(void);
+int probe_egtb(void);
+
 #endif
 

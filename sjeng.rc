@@ -1,25 +1,45 @@
-# Sample rcfile for Sjeng 8.0
+# Sample rcfile for Sjeng 10.0
 #
 # First number is size of hash table (transposition table) 
-# The actual hash table will be this number times 2 entries big
-# All variants
+# An entry is about 16 bytes, and there are three tables, 
+# so the total hash size is the number below times 48.
+# Normal, Bughouse, Crazyhouse, Losers
 #
-500000
+200000
 #
 # Evaluation cache entries
-# All variants
+# An entry is normally about 8 bytes
+# Normal, Bughouse, Crazyhouse, Losers
 #
-500000
+100000
 #
 # Proofnumber search buffer
-# In suicide Sjeng uses proofnumbersearch instead of the
-# more common alpha-beta search. If the buffer is filled
+# In suicide/giveaway and losers Sjeng uses proofnumbersearch instead 
+# of the more common alpha-beta search. If the buffer is filled
 # Sjeng will have to stop searching. Make this a large
-# number if you will play suicide at slow timecontrols.
-# You can safely set this to 0 if you do not play suicide.
-# Suicide only
+# number if you will play suicide or losers at slow timecontrols.
+# You can safely set this to 0 if you do not play suicide/giveaway
+# or losers.
+# Each entry is about 28 bytes.
+# Suicide/Giveaway and Losers only
 #
-500000
+200000
+#
+# EGTB Buffer size
+#
+# This is the amount of memory that will be used for
+# endgame tablebase caching.
+# Normal chess only
+#
+1000000
+#
+# EGTB directory
+#
+# Point this to the directory where your Nalimov endgame
+# tablebases are located.
+# Normal chess only
+#
+/windows/crafty/TB
 #
 # Kingsafety scalefactor (range 0<->2.5)
 # This controls how much emphasis Sjeng will
@@ -52,9 +72,6 @@
 # Book learning
 # Sjeng will adjust the openings it plays
 # depending on the outcome of the game.
-# Note that book learning combined with
-# a small opening book may cause Sjeng to
-# leave the book at move 1 after a while.
 # All variants
 1
 #
@@ -64,7 +81,35 @@
 # them less deeply.
 # All variants
 1
-# 
+#
+# One-reply extension (1=enabled/0=disabeled)
+# Sjeng will loop deeper at very forcing lines.
+# This can cause Sjeng to see some tactics faster,
+# but it may reduce overall search depth.
+# Normal/Crazyhouse/Bughouse
+1
+#
+# Recapture extension (1=enabled/0=disabled)
+# Sjeng will treat a recapture like a forced move.
+# Normal/Crazyhouse/Bughouse
+1
+#
+# Use Smarteval (1=enabled/0=disabled)
+# This enables the use of an evalution 
+# which can detect some typical threats,
+# but which will also slow the search down.
+# Crazyhouse and Bughouse only
+1
+#
+# Use Attackeval (1=enabled/0=disabled)
+# Sjeng will do a full calculation of
+# which squares near the king are threatened.
+# This will increase its awareness of 
+# kingsafety, but will also cause it
+# to search slower, and hence look less deeply.
+# Crazyhouse and Bughouse only
+1
+#
 # Kingsafety (Crazyhouse/Bughouse only)
 #
 # The following tables are the 'tropisms'. 
@@ -92,6 +137,9 @@
 # king that are attacked, taking into account
 # the pieces in our opponents hand.
 #
+# It is only used if AttackEval is also enabled
+#
+#
 # Columns are the number of squares that are attacked.
 # Rows are the number of points in the opponents hand.
 #
@@ -109,4 +157,4 @@
 -15  60 110 160 280 400 600 700 800 
 -20  70 115 165 290 400 600 700 800 
 -20  80 120 170 300 450 700 800 900 
--20  80 125 175 310 450 700 800 900 
+-20  80 125 175 310 450 700 800 900

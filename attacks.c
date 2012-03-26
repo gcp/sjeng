@@ -171,3 +171,373 @@ int calc_attackers (int square, int color) {
   return attackers;
 
 }
+
+#if 0
+bool is_attacked (int square, int color)
+{
+  int a, j, dir, i, l;
+
+  for (a = 1, j = 1; (a <= piece_count); j++)
+  {
+    i = pieces[j];
+    
+    if (!i)
+      continue;
+    else
+      a++;
+
+    if ((color&1) != (board[i]&1)) continue;
+
+   if (color & 1)
+   {
+    switch (board[i])
+    {
+	case (wpawn):
+	  if ((i+13) == square || (i+11) == square) return TRUE;
+	  break;
+	case (wknight):
+	  if ((i - 25) == square || (i-23) == square || (i-14) == square
+	      || (i-10) == square || (i+10) == square || (i+14) == square
+	      || (i+23) == square || (i+25) == square) return TRUE;
+	  break;
+	case (wbishop):
+	  dir = abs(i - square);
+	  if ((dir % 13) == 0)
+	  {
+	        dir = (i - square > 0) ? 13 : -13;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if ((dir % 11) == 0)
+	  {
+	        dir = (i - square > 0) ? 11 : -11;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  break;
+	case (wrook):
+	  if (file(i) == file(square))
+	  {
+	    dir = (i - square > 0) ? 12 : -12;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  else if (rank(i) == rank(square))
+	  {
+	    dir = (i - square > 0) ? 1 : -1;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  break;
+	case (wqueen):
+	  dir = abs(i - square);
+	  if ((dir % 13) == 0)
+	  {
+	        dir = (i - square > 0) ? 13 : -13;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if ((dir % 11) == 0)
+	  {
+	        dir = (i - square > 0) ? 11 : -11;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if (file(i) == file(square))
+	  {
+	    dir = (i - square > 0) ? 12 : -12;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == j) return TRUE;
+	  }
+	  else if (rank(i) == rank(square))
+	  {
+	    dir = (i - square > 0) ? 1 : -1;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  break;
+	case (wking):
+	  if (   (abs(rank(i) - rank(square)) <= 1) 
+	      && (abs(file(i) - file(square)) <= 1)) 
+	    return TRUE;
+	  break;
+      }
+   }
+   else 
+   {
+     switch(board[i])
+     {
+	case (bpawn):
+	  if ((i-13) == square || (i-11) == square) return TRUE;
+	  break;
+	case (bknight):
+	  if ((i - 25) == square || (i-23) == square || (i-14) == square
+	      || (i-10) == square || (i+10) == square || (i+14) == square
+	      || (i+23) == square || (i+25) == square) return TRUE;
+	  break;
+	case (bbishop):
+	  dir = abs(i - square);
+	  if ((dir % 13) == 0)
+	  {
+	        dir = (i - square > 0) ? 13 : -13;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if ((dir % 11) == 0)
+	  {
+	        dir = (i - square > 0) ? 11 : -11;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  break;
+	case (brook):
+	  if (file(i) == file(square))
+	  {
+	    dir = (i - square > 0) ? 12 : -12;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  else if (rank(i) == rank(square))
+	  {
+	    dir = (i - square > 0) ? 1 : -1;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  break;
+	case (bqueen):
+	  dir = abs(i - square);
+	  if ((dir % 13) == 0)
+	  {
+	        dir = (i - square > 0) ? 13 : -13;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if ((dir % 11) == 0)
+	  {
+	        dir = (i - square > 0) ? 11 : -11;
+	  	for (l = square+dir;(board[l] == npiece) && (l != i);l += dir);
+	  	if (i == l) return TRUE;
+	  }
+	  else if (file(i) == file(square))
+	  {
+	    dir = (i - square > 0) ? 12 : -12;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  else if (rank(i) == rank(square))
+	  {
+	    dir = (i - square > 0) ? 1 : -1;
+	    for (l = square+dir;(board[l] == npiece) && (l != i); l += dir);
+	    if (i == l) return TRUE;
+	  }
+	  break;
+	case (bking):
+	  if (   (abs(rank(i) - rank(square)) <= 1) 
+	      && (abs(file(i) - file(square)) <= 1)) 
+	    return TRUE;
+	  break;
+      }
+    }
+  }
+  return FALSE;
+}
+#endif
+
+bool is_attacked (int square, int color) {
+
+  /* this function will return TRUE if square "square" is attacked by a piece
+     of color "color", and return FALSE otherwise */
+
+  static const int rook_o[4] = {12, -12, 1, -1};
+  static const int bishop_o[4] = {11, -11, 13, -13};
+  static const int knight_o[8] = {10, -10, 14, -14, 23, -23, 25, -25};
+  register int ndir, a_sq;
+  register int basq, i;
+
+  /* white attacker: */
+  if (color&1) {
+    
+    /* bishop-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = bishop_o[i];
+      a_sq = square+ndir;
+      basq = board[a_sq];
+      /* check for pawn attacks: */
+      if (basq == wpawn && (i&1)) return TRUE;
+      /* the king can attack from one square away: */
+      if (basq == wking) return TRUE;
+      while (basq != frame) {
+	if (basq == wbishop || basq == wqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+    /* knight-style moves: */
+    for (i = 0; i < 8; i++) {
+      if (board[square + knight_o[i]] == wknight) return TRUE;
+    }
+    /* rook-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = rook_o[i];
+      a_sq = square + ndir;
+      basq = board[a_sq];
+      /* the king can attack from one square away: */
+      if (basq == wking) return TRUE;
+      /* otherwise, check for sliding pieces: */
+      while (basq != frame) {
+	if (basq == wrook || basq == wqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* if we haven't hit a white attacker by now, there are none: */
+    return FALSE;
+
+  }
+
+  /* black attacker: */
+  else {
+      /* bishop-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = bishop_o[i];
+      a_sq = square + ndir;
+      basq = board[a_sq];
+      /* check for pawn attacks: */
+      if (basq == bpawn && !(i&1)) return TRUE;
+      /* the king can attack from one square away: */
+      if (basq == bking) return TRUE;
+      while (basq != frame) {
+	if (basq == bbishop || basq == bqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* knight-style moves: */
+    for (i = 0; i < 8; i++) {
+      if (board[square + knight_o[i]] == bknight) return TRUE;
+    }
+
+    /* rook-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = rook_o[i];
+      a_sq = square + rook_o[i];
+      basq = board[a_sq];
+      /* the king can attack from one square away: */
+      if (basq == bking) return TRUE;
+      /* otherwise, check for sliding pieces: */
+      while (basq != frame) {
+	if (basq == brook || basq == bqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* if we haven't hit a black attacker by now, there are none: */
+    return FALSE;
+
+  }
+
+}
+
+bool nk_attacked (int square, int color) {
+
+  /* this function will return TRUE if square "square" is attacked by a piece
+     of color "color", and return FALSE otherwise */
+
+  static const int rook_o[4] = {12, -12, 1, -1};
+  static const int bishop_o[4] = {11, -11, 13, -13};
+  static const int knight_o[8] = {10, -10, 14, -14, 23, -23, 25, -25};
+  register int ndir, a_sq;
+  register int basq, i;
+
+  /* white attacker: */
+  if (color&1) {
+    
+    /* bishop-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = bishop_o[i];
+      a_sq = square+ndir;
+      basq = board[a_sq];
+      /* check for pawn attacks: */
+      if (basq == wpawn && (i&1)) return TRUE;
+      /* the king can attack from one square away: */
+      while (basq != frame) {
+	if (basq == wbishop || basq == wqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+    /* knight-style moves: */
+    for (i = 0; i < 8; i++) {
+      if (board[square + knight_o[i]] == wknight) return TRUE;
+    }
+    /* rook-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = rook_o[i];
+      a_sq = square + ndir;
+      basq = board[a_sq];
+      /* otherwise, check for sliding pieces: */
+      while (basq != frame) {
+	if (basq == wrook || basq == wqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* if we haven't hit a white attacker by now, there are none: */
+    return FALSE;
+
+  }
+
+  /* black attacker: */
+  else {
+      /* bishop-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = bishop_o[i];
+      a_sq = square + ndir;
+      basq = board[a_sq];
+      /* check for pawn attacks: */
+      if (basq == bpawn && !(i&1)) return TRUE;
+      /* the king can attack from one square away: */
+      while (basq != frame) {
+	if (basq == bbishop || basq == bqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* knight-style moves: */
+    for (i = 0; i < 8; i++) {
+      if (board[square + knight_o[i]] == bknight) return TRUE;
+    }
+
+    /* rook-style moves: */
+    for (i = 0; i < 4; i++) {
+      ndir = rook_o[i];
+      a_sq = square + rook_o[i];
+      basq = board[a_sq];
+      /* otherwise, check for sliding pieces: */
+      while (basq != frame) {
+	if (basq == brook || basq == bqueen) return TRUE;
+	if (basq != npiece) break;
+	a_sq += ndir;
+	basq = board[a_sq];
+      }
+    }
+
+    /* if we haven't hit a black attacker by now, there are none: */
+    return FALSE;
+
+  }
+
+}
+

@@ -1,6 +1,6 @@
 /*
     Sjeng - a chess variants playing program
-    Copyright (C) 2000 Gian-Carlo Pascutto
+    Copyright (C) 2000-2001 Gian-Carlo Pascutto
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    File: utils.c                                       
+    File: utils.c                                   
     Purpose: misc. functions used throughout the program
 
 */
@@ -25,7 +25,6 @@
 #include "sjeng.h"
 #include "extvars.h"
 #include "protos.h"
-#include "config.h"
 
 #include "limits.h" 
 #ifdef HAVE_SELECT
@@ -42,6 +41,20 @@ struct timeval timeout = { 0, 0 };
 #define frame 0
 #endif
 #endif
+
+/* Random number generator stuff */
+
+#define N              (624)                 
+#define M              (397)                 
+#define K              (0x9908B0DFU)         
+#define hiBit(u)       ((u) & 0x80000000U)   
+#define loBit(u)       ((u) & 0x00000001U)   
+#define loBits(u)      ((u) & 0x7FFFFFFFU)   
+#define mixBits(u, v)  (hiBit(u)|loBits(v))  
+
+static unsigned long   state[N+1];     
+static unsigned long   *next;          
+int                    left = -1;      
 
 long int allocate_time (void) {
 
@@ -61,7 +74,9 @@ long int allocate_time (void) {
        will play poorly if it tries to do the same. */
 
     /* check to see if we're behind on time and need to speed up: */
-    if ((min_per_game < 6 && !inc) || time_left < min_per_game*6000*4.0/5.0) {
+    if ((min_per_game < 6 && !inc) 
+	|| time_left < (((min_per_game*6000) + (sec_per_game*100))*4.0/5.0)) 
+    {
       if ((opp_time-time_left) > (opp_time/5.0) && xb_mode)
 	move_speed = 40.0;
       else if ((opp_time-time_left) > (opp_time/10.0) && xb_mode)
@@ -70,14 +85,21 @@ long int allocate_time (void) {
 	move_speed = 25.0;
     }
    
-    if (Variant != Suicide)
+    if ((Variant != Suicide) && (Variant != Losers))
     {
     	if ((time_left-opp_time) > (time_left/5.0) && xb_mode)
         	move_speed -= 10;
     	else if ((time_left-opp_time) > (time_left/10.0) && xb_mode)
         	move_speed -= 5;
     }    
-    else move_speed -= 10;
+    else if (Variant == Suicide)
+	{
+		move_speed -= 10;
+	}
+	else if (Variant == Losers)
+	{
+		move_speed -= 5;
+	}
 
     /* allocate our base time: */
     allocated_time = time_left/move_speed;
@@ -95,7 +117,9 @@ long int allocate_time (void) {
   
   /* conventional clock time allocation: */
   else {
-    allocated_time = (((float)min_per_game/(float)moves_to_tc)*6000.) - 100.;
+    allocated_time = (((float)min_per_game * 6000. 
+	    + (float)sec_per_game * 100.)/(float)moves_to_tc) - 100.;
+    
     /* if we've got extra time, use some of it: */
     if (time_cushion) {
       allocated_time += time_cushion*2.0/3.0;
@@ -104,8 +128,16 @@ long int allocate_time (void) {
   }
 
   if (Variant == Bughouse)
-	allocated_time *= 1./2.;
-  
+  {
+	allocated_time *= 1./4.;
+
+	if ((opp_time > time_left) || (opp_time < 1500))
+	{
+	  /* behind on time or blitzing out */
+	  allocated_time *= 1./2.;
+	}
+  }
+ 
   return ((long int) allocated_time);
 
 }
@@ -118,9 +150,9 @@ void comp_to_san (move_s move, char str[])
   int i, num_moves, evasions, ambig, mate;
   int f_rank, t_rank, converter;
   char f_file, t_file;
-  int eps;
+  int ic;
 
-  eps = ep_square;
+  //eps = ep_square;
   
   f_rank = rank (move.from);
   t_rank = rank (move.target);
@@ -177,6 +209,8 @@ void comp_to_san (move_s move, char str[])
       gen(&moves[0]);
       num_moves = numb_moves;
       
+      ic = in_check();
+      
       /* check whether there is another, identical piece that
 	 could also move to this square */
       for(i = 0; i < num_moves; i++)
@@ -187,7 +221,7 @@ void comp_to_san (move_s move, char str[])
 	    {
 	      /* would it be a legal move ? */
 	      make(&moves[0], i);
-	      if (check_legal(&moves[0], i))
+	      if (check_legal(&moves[0], i, ic))
 		{
 		  unmake(&moves[0], i);
 		  ambig = i;
@@ -234,9 +268,17 @@ void comp_to_san (move_s move, char str[])
 	}
     }
   
-  ep_square = eps;
+  //ep_square = eps;
   
   make(&move, 0);
+
+  if (!check_legal(&move, 0, 1))
+  {
+    strcpy(str, "illg");
+    unmake(&move, 0);
+    return;
+  }
+  
   if (in_check())
     {
       mate = TRUE;
@@ -247,7 +289,7 @@ void comp_to_san (move_s move, char str[])
       for (i = 0; i < evasions; i++)
 	{
 	  make(&evade_moves[0], i);
-	  if (check_legal(&evade_moves[0], i))
+	  if (check_legal(&evade_moves[0], i, TRUE))
 	    {
 	      mate = FALSE;
 	      unmake(&evade_moves[0], i);
@@ -392,10 +434,6 @@ void init_game (void) {
 
   piece_count = 32;
 
-  moves_to_tc = 30;
-  min_per_game = 30;
-  time_cushion = 0;
-
   Material = 0;
 
   memset(is_promoted, 0, sizeof(is_promoted));
@@ -406,8 +444,10 @@ void init_game (void) {
 
   reset_piece_square ();
   
-  lastbookpos = 0;
+  bookidx = 0;
   book_ply = 0;
+  fifty = 0;
+  ply = 0;
   
   phase = Opening;
 }
@@ -506,7 +546,7 @@ void hash_extract_pv(int level, char str[])
 	{
 	  comp_to_san(moves[bm], output);
 	  make(&moves[0], bm);
-	  if (check_legal(&moves[0], bm))
+	  if (check_legal(&moves[0], bm, 1))
 	    {
 	      /* only print move AFTER legal check is done */
 	      strcat(str, "<");
@@ -653,7 +693,15 @@ void post_stat_thinking(void)
   long int elapsed;
 
   elapsed = rdifftime (rtime (), start_time);
-  printf ("stat01: %ld %ld %d 0 0\n", elapsed, nodes, i_depth);
+
+  if (xb_mode == 1)
+  {
+    printf ("stat01: %ld %ld %d %d %d\n", elapsed, nodes, i_depth, moveleft, movetotal);
+  }
+  else if (xb_mode == 2)
+  {
+    printf ("stat01: %ld %ld %d %d %d %s\n", elapsed, nodes, i_depth, moveleft, movetotal, searching_move);
+  }
 }
 
 
@@ -705,6 +753,54 @@ long int rdifftime (rtime_t end, rtime_t start) {
 }
 
 
+void check_piece_square (void)
+{
+  int i;
+  
+  for (i = 1; i <= piece_count; i++)
+  {
+    if (squares[pieces[i]] != i && pieces[i] != 0)
+    {
+      printf("Piece->square->piece inconsistency\n");
+      display_board(stdout, 0);
+      DIE;
+    }
+      if (board[pieces[i]] == npiece && pieces[i] != 0)
+      {
+	printf("Board/Piece->square inconsistency\n");
+        display_board(stdout, 0);
+	DIE;
+      }
+	if (pieces[i] == 0 && squares[pieces[i]] != 0)
+    {
+      printf("Zero-ed piece inconsistency\n");
+      display_board(stdout, 0);
+      DIE;
+    }
+  }
+  for (i = 0; i < 144; i++)
+  {
+    if ((board[i] == npiece || board[i] == frame) && squares[i] != 0)
+    {
+      printf("Empty square has piece pointer\n");
+      display_board(stdout, 0);
+      DIE;
+    }
+    if (board[i] != npiece && board[i] != frame && squares[i] == 0)
+    {
+      printf("Filled square %d has no piece pointer\n", i);
+      display_board(stdout, 0);
+      DIE;
+    }
+    if (pieces[squares[i]] != i && squares[i] != 0)
+    {
+      printf("Square->piece->square inconsistency\n");
+      display_board(stdout, 0);
+      DIE;
+    }
+  }
+}
+
 void reset_piece_square (void) {
 
   /* we use piece number 0 to show a piece taken off the board, so don't
@@ -737,6 +833,7 @@ void reset_piece_square (void) {
        AddMaterial(board[i]);
        
        piece_count += 1;
+       
        pieces[piece_count] = i;
        squares[i] = piece_count;
        
@@ -803,7 +900,7 @@ void start_up (void) {
 
   /* things to do on start up of the program */
 
-  printf("\nSjeng version " VERSION ", Copyright (C) 2000 Gian-Carlo Pascutto\n\n"
+  printf("\nSjeng version " VERSION ", Copyright (C) 2000-2001 Gian-Carlo Pascutto\n\n"
          "Sjeng comes with ABSOLUTELY NO WARRANTY; for details type 'warranty'\n"
          "This is free software, and you are welcome to redistribute it\n"
          "under certain conditions; type 'distribution'\n\n");
@@ -873,19 +970,57 @@ bool verify_coord (char input[], move_s *move) {
      true if the move was legal, and stores the legal move inside move */
 
   move_s moves[MOVE_BUFF];
-  int num_moves, i, ep_temp;
+  int num_moves, i;
   char comp_move[6];
   bool legal = FALSE;
+  bool mate;
 
-  gen (&moves[0]); 
-  num_moves = numb_moves;
+  if (Variant == Losers)
+    {
+      captures = TRUE;
+      num_moves = 0;
+      gen (&moves[0]);
+      num_moves = numb_moves;
+      captures = FALSE;
+      
+      mate = TRUE;
+      
+      for (i = 0; i < num_moves; i++) 
+	{
+	  make (&moves[0], i);
+	  
+	  /* check to see if our move is legal: */
+	  if (check_legal (&moves[0], i, TRUE)) 
+	    {
+	      mate = FALSE;
+	      unmake(&moves[0], i);
+	      break;
+	    };
+	  
+	  unmake(&moves[0], i);
+	}
+      
+      if (mate == TRUE)
+	{
+	  /* no legal capture..do non-captures */
+	  captures = FALSE;
+	  num_moves = 0;
+	  gen (&moves[0]);
+	  num_moves = numb_moves;
+	}
+    }
+  else
+    {
+      gen (&moves[0]); 
+      num_moves = numb_moves;
+    }  
 
   /* compare user input to the generated moves: */
   for (i = 0; i < num_moves; i++) {
     comp_to_coord (moves[i], comp_move);
     if (!strcasecmp (input, comp_move)) {
       make (&moves[0], i);
-      if (check_legal (&moves[0], i)) {
+      if (check_legal (&moves[0], i, TRUE)) {
 	legal = TRUE;
 	*move = moves[i];
       }
@@ -941,14 +1076,13 @@ int interrupt(void)
       if (!pipe) {
 	SetConsoleMode(inh, dw & ~(ENABLE_MOUSE_INPUT|ENABLE_WINDOW_INPUT));
 	FlushConsoleInputBuffer(inh);
-	FlushConsoleInputBuffer(inh);
       }
     }
     if(pipe) {
       if(!PeekNamedPipe(inh, NULL, 0, NULL, &dw, NULL)) 
 	{
 	  c = getc(stdin);
-
+	  
 	  if (c == '?')   /*Move now*/
 	    {
 	      return 1;
@@ -997,7 +1131,7 @@ int interrupt(void)
       else 
 	{ 
 	  c = getc(stdin);
-
+	  
 	  if (c == '?')   /*Move now*/
 	    {
 	      return 1;
@@ -1100,18 +1234,18 @@ void reset_board (void) {
   int i;
 
   int init_board[144] = {
-  0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,13,13,13,13,13,13,13,13,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,13,13,13,13,13,13,13,13,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0
   };
 
   memcpy (board, init_board, sizeof (init_board));
@@ -1130,8 +1264,9 @@ void reset_board (void) {
   white_hand_eval = 0;
   black_hand_eval = 0;
 
-  lastbookpos = 0;
-
+  bookidx = 0;
+  fifty = 0;
+  
   reset_piece_square ();
   
 }
@@ -1139,13 +1274,17 @@ void reset_board (void) {
 void speed_test(void)
 {
   move_s moves[MOVE_BUFF];
-  int i, j, ep_temp;
+  int i, j;
   clock_t cpu_start, cpu_end; 
   float et;
+  int ic;
 
+  /* LCT2 Pos 1 */
+  setup_epd_line("r3kb1r/3n1pp1/p6p/2pPp2q/Pp2N3/3B2PP/1PQ2P2/R3K2R w KQkq");
+   
   cpu_start = clock ();
 
-  for (i = 0; i < 500000; i++)
+  for (i = 0; i < 5000000; i++)
     {
       gen (&moves[0]);
     }
@@ -1153,13 +1292,12 @@ void speed_test(void)
   cpu_end = clock ();
   et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
   
-  printf("Movegen speed: %d/s\n", (int)(500000.0/et));
-  
+  printf("Movegen speed: %d/s\n", (int)(5000000.0/et));
   j = 0;
   
   cpu_start = clock ();
   
-  for (i = 0; i < 5000000; i++)
+  for (i = 0; i < 50000000; i++)
     {
       make (&moves[0], j);
       unmake (&moves[0], j);
@@ -1171,13 +1309,36 @@ void speed_test(void)
   cpu_end = clock ();
   et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
   
-  printf("Make/unmake speed: %d/s\n", (int)(5000000.0/et));
+  printf("Make+unmake speed: %d/s\n", (int)(50000000.0/et));
+  
+  j = 0;
+
+  ic = in_check();
+  
+  cpu_start = clock ();
+  
+  for (i = 0; i < 50000000; i++)
+    {
+      make (&moves[0], j);
+
+      check_legal(&moves[0], j, ic);
+      
+      unmake (&moves[0], j);
+      
+      if ((j+1) < numb_moves) j++;
+      else j = 0;
+    }
+  
+  cpu_end = clock ();
+  et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+  
+  printf("Movecycle speed: %d/s\n", (int)(50000000.0/et));
   
   reset_ecache();
   
   cpu_start = clock ();
   
-  for (i = 0; i < 1000000; i++)
+  for (i = 0; i < 10000000; i++)
     {
       eval();
       /* invalidate the ecache */
@@ -1187,9 +1348,57 @@ void speed_test(void)
   cpu_end = clock ();
   et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
   
-  printf("Eval speed: %d/s\n", (int)(1000000.0/et));
+  printf("Eval speed: %d/s\n", (int)(10000000.0/et));
   
   /* restore the hash */
   initialize_hash();
   
+}
+
+/* Mersenne Twister */
+
+void seedMT(unsigned long seed)
+{
+  register unsigned long x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
+  register int    j;
+
+  for(left=0, *s++=x, j=N; --j;
+      *s++ = (x*=69069U) & 0xFFFFFFFFU);
+}
+
+unsigned long reloadMT(void)
+{
+  register unsigned long *p0=state, *p2=state+2, *pM=state+M, s0, s1;
+  register int    j;
+
+  if(left < -1)
+    seedMT(4357U);
+
+  left=N-1, next=state+1;
+
+  for(s0=state[0], s1=state[1], j=N-M+1; --j; s0=s1, s1=*p2++)
+    *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+
+  for(pM=state, j=M; --j; s0=s1, s1=*p2++)
+    *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+
+  s1=state[0], *p0 = *pM ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+  s1 ^= (s1 >> 11);
+  s1 ^= (s1 <<  7) & 0x9D2C5680U;
+  s1 ^= (s1 << 15) & 0xEFC60000U;
+  return(s1 ^ (s1 >> 18));
+}
+
+unsigned long randomMT(void)
+{
+  unsigned long y;
+
+  if(--left < 0)
+    return(reloadMT());
+
+  y  = *next++;
+  y ^= (y >> 11);
+  y ^= (y <<  7) & 0x9D2C5680U;
+  y ^= (y << 15) & 0xEFC60000U;
+  return(y ^ (y >> 18));
 }

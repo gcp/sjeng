@@ -41,11 +41,16 @@ int cfg_tropism[5][7];
 int havercfile;
 int cfg_futprune;
 int cfg_devscale;
+int cfg_onerep;
+int cfg_recap;
+int cfg_smarteval;
+int cfg_attackeval;
 float cfg_scalefac;
 
 void read_rcfile (void) 
 {
   int i;
+  unsigned int setc;
   
   if ((rcfile = fopen ("sjeng.rc", "r")) == NULL)
     {
@@ -54,15 +59,31 @@ void read_rcfile (void)
       TTSize = 300000;
       ECacheSize = 200000;
       PBSize = 200000;
+	  EGTBCacheSize = 0;
+	  strcpy(EGTBDir, "TB");
       
       cfg_devscale = 1;
       cfg_scalefac = 1.0;
       cfg_razordrop = 1;
       cfg_cutdrop = 0;
       cfg_futprune = 1;
+      cfg_smarteval = 1;
+      cfg_attackeval = 0;
 
       havercfile = 0;
 
+      setc =   havercfile 
+	    + (cfg_devscale << 1) 
+	    + (((cfg_scalefac == 1.0) ? 1 : 0) << 2)
+	    + (cfg_razordrop << 3)
+	    + (cfg_cutdrop << 4)
+	    + (cfg_futprune << 5)
+	    + (cfg_smarteval << 6)
+	    + (cfg_attackeval << 7);
+	    
+      
+      sprintf(setcode, "%u", setc);
+      
       initialize_eval();
       alloc_hash();
       alloc_ecache();
@@ -84,6 +105,14 @@ void read_rcfile (void)
   fgets(line, STR_BUFF, rcfile);
   while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
   sscanf(line, "%d", &PBSize);
+
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%d", &EGTBCacheSize);
+
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%s", &EGTBDir);
 
   fgets(line, STR_BUFF, rcfile);
   while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
@@ -111,6 +140,22 @@ void read_rcfile (void)
 
   fgets(line, STR_BUFF, rcfile);
   while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%d", &cfg_onerep);
+    
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%d", &cfg_recap);
+  
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%d", &cfg_smarteval);
+  
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
+  sscanf(line, "%d", &cfg_attackeval);
+
+  fgets(line, STR_BUFF, rcfile);
+  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
   
   for(i = 0; i < 5; i++)
   {
@@ -131,7 +176,19 @@ void read_rcfile (void)
       
           do {fgets(line, STR_BUFF, rcfile);} while ((line[0] == '#') && !feof(rcfile));
   }
-  
+
+  setc =   havercfile 
+            + (cfg_devscale << 1) 
+	    + (((cfg_scalefac == 1.0) ? 1 : 0) << 2)
+	    + (cfg_razordrop << 3)
+	    + (cfg_cutdrop << 4)
+	    + (cfg_futprune << 5)
+	    + (cfg_smarteval << 6)
+	    + (cfg_attackeval << 7);
+	    
+      
+  sprintf(setcode, "%u", setc);
+
   initialize_eval();
   alloc_hash();
   alloc_ecache();

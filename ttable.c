@@ -1,6 +1,6 @@
 /*
     Sjeng - a chess variants playing program
-    Copyright (C) 2000 Gian-Carlo Pascutto
+    Copyright (C) 2000-2001 Gian-Carlo Pascutto
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -46,12 +46,23 @@ typedef struct
 }
 TType;
 
+typedef struct
+{
+  unsigned char Bestmove;
+  unsigned OnMove:1, Type:2;
+  unsigned long Hash;
+  unsigned long Hold_hash;
+  signed long Bound;
+}
+QTType;
+
 /*TType DP_TTable[TTSIZE];
 TType AS_TTable[TTSIZE];
 */
 
 TType *DP_TTable;
 TType *AS_TTable;
+QTType *QS_TTable;
 
 void clear_tt(void)
 {
@@ -67,16 +78,16 @@ void clear_dp_tt(void)
 void initialize_zobrist(void)
 {
   int p, q;
-
-  srand(1234);
-
+  
+  seedMT(31657);
+  
   for(p = 0; p < 17; p++)
+  {
     for(q = 0; q < 144; q++)
       {
-	/* rand might return a 16 or a 32 bit integer */
-	zobrist[p][q] = (rand() << 16) + rand();
+	zobrist[p][q] = randomMT();
       }
-
+  }
   /* our magic number */
 
   hash = 0xDEADBEEF;
@@ -90,12 +101,37 @@ void initialize_hash(void)
   
   for(p = 0; p < 144; p++)
     {
-      hash = hash ^ zobrist[board[p]][p];
+      if (board[p] != npiece && board[p] != frame)
+	hash = hash ^ zobrist[board[p]][p];
     }
 
   hold_hash = 0xC0FFEE00;
   /* we need to set up hold_hash here, rely on ProcessHolding for now */
 
+}
+
+void QStoreTT(int score, int alpha, int beta, int best)
+{
+  unsigned long index;
+  
+  TTStores++;
+
+  index = hash % TTSize;
+
+  if (score <= alpha)     
+    QS_TTable[index].Type = UPPER;
+  else if(score >= beta) 
+    QS_TTable[index].Type = LOWER;
+  else                  
+    QS_TTable[index].Type = EXACT;
+  
+  QS_TTable[index].Hash = hash;
+  QS_TTable[index].Hold_hash = hold_hash;
+  QS_TTable[index].Bestmove = best;
+  QS_TTable[index].Bound = score;
+  QS_TTable[index].OnMove = ToMove;
+    
+  return;
 }
 
 void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
@@ -106,20 +142,36 @@ void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
 
   index = hash % TTSize;
 
-  if (DP_TTable[index].Depth <= depth && !is_pondering)
+  /* Prefer storing entries with more information */
+  if ((      (DP_TTable[index].Depth < depth) 
+        ||  ((DP_TTable[index].Depth == depth) && 
+	        (    ((DP_TTable[index].Type == UPPER) && (score > alpha))
+		 ||  ((score > alpha) && (score < beta))
+		)
+	    )
+      )
+      && !is_pondering)
     {
-      if (score <= alpha)     
+      if (score <= alpha)  
+      {
 	DP_TTable[index].Type = UPPER;
+	if (score < -INF+500) score = -INF+500;
+      }
       else if(score >= beta) 
+      {
 	DP_TTable[index].Type = LOWER;
+	if (score > INF-500) score = INF-500;
+      }
       else                  
+      {
 	DP_TTable[index].Type = EXACT;
-      
-      /* normalize mate scores */
-      if (score > (+INF-500))
-	score += ply;
-      else if (score < (-INF+500))
-	score -= ply;
+     
+	/* normalize mate scores */
+       if (score > (+INF-500))
+	  score += ply;
+        else if (score < (-INF+500))
+	  score -= ply;
+      }
       
       DP_TTable[index].Hash = hash;
       DP_TTable[index].Hold_hash = hold_hash;
@@ -131,18 +183,26 @@ void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
     }
   else 
     {
-     if (score <= alpha)     
+      if (score <= alpha)  
+      {
 	AS_TTable[index].Type = UPPER;
+	if (score < -INF+500) score = -INF+500;
+      }
       else if(score >= beta) 
+      {
 	AS_TTable[index].Type = LOWER;
+	if (score > INF-500) score = INF-500;
+      }
       else                  
+      {
 	AS_TTable[index].Type = EXACT;
-      
-      /* normalize mate scores */
-      if (score > (+INF-500))
-	score += ply;
-      else if (score < (-INF+500))
-	score -= ply;
+     
+	/* normalize mate scores */
+       if (score > (+INF-500))
+	  score += ply;
+        else if (score < (-INF+500))
+	  score -= ply;
+      }
       
       AS_TTable[index].Hash = hash;
       AS_TTable[index].Hold_hash = hold_hash;
@@ -190,10 +250,10 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
     {
       TTHits++;
       
-      /*if ((TTable[index].Type == UPPER) 
-      	   && ((depth-2-1) <= TTable[index].Depth) 
-      	   && (TTable[index].Bound < beta)) 
-      	  *donull = FALSE;*/
+      if ((DP_TTable[index].Type == UPPER) 
+      	   && ((depth-2-1) <= DP_TTable[index].Depth) 
+      	   && (DP_TTable[index].Bound < beta)) 
+      	  *donull = FALSE;
 
       if (DP_TTable[index].Threat) depth++;
       
@@ -224,6 +284,11 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
       && (AS_TTable[index].OnMove == ToMove))
     {
       TTHits++;
+      
+      if ((AS_TTable[index].Type == UPPER) 
+      	   && ((depth-2-1) <= AS_TTable[index].Depth) 
+      	   && (AS_TTable[index].Bound < beta)) 
+      	  *donull = FALSE;
 
       if (AS_TTable[index].Threat) depth++;
       
@@ -254,11 +319,56 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
 
 }
 
+int QProbeTT(int *score, int alpha, int beta, int *best)
+{
+
+  unsigned long index;
+
+  TTProbes++;
+
+  index = hash % TTSize;
+  
+  if ((QS_TTable[index].Hash == hash) 
+      && (QS_TTable[index].Hold_hash == hold_hash) 
+      && (QS_TTable[index].OnMove == ToMove))
+    {
+      TTHits++;
+      
+      *score = QS_TTable[index].Bound;
+      
+      *best = QS_TTable[index].Bestmove;
+      
+      return QS_TTable[index].Type;
+    }
+  else
+    return HMISS;
+
+}
+
+
 void alloc_hash(void)
 {
   AS_TTable = (TType *) malloc(sizeof(TType) * TTSize);
   DP_TTable = (TType *) malloc(sizeof(TType) * TTSize);
-  printf("Allocated 2*%d hash entries, totalling %d bytes.\n",
-          TTSize, 2*sizeof(TType)*TTSize);
+  QS_TTable = (QTType *) malloc(sizeof(QTType) * TTSize);
+
+  if (AS_TTable == NULL || DP_TTable == NULL || QS_TTable == NULL)
+  {
+    printf("Out of memory allocating hashtables.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  printf("Allocated 2*%d hash entries, totalling %lu bytes.\n",
+          TTSize, (unsigned long)(2*sizeof(TType)*TTSize));
+  printf("Allocated %d quiescenthash entries, totalling %lu bytes.\n",
+          TTSize, (unsigned long)(sizeof(QTType)*TTSize));
   return; 
+}
+
+void free_hash(void)
+{
+  free(AS_TTable);
+  free(DP_TTable);
+  free(QS_TTable);
+  return;
 }
