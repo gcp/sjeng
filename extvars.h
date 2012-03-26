@@ -185,7 +185,7 @@ extern int EGTBHits;
 extern int EGTBPieces;
 extern int EGTBCacheSize;
 extern char EGTBDir[STR_BUFF];
-
+extern int SEGTB;
 
 
 

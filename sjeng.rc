@@ -5,13 +5,13 @@
 # so the total hash size is the number below times 48.
 # Normal, Bughouse, Crazyhouse, Losers
 #
-500000
+1000000
 #
 # Evaluation cache entries
 # An entry is normally about 8 bytes
 # Normal, Bughouse, Crazyhouse, Losers
 #
-50000
+4000
 #
 # Proofnumber search buffer
 # In suicide/giveaway and losers Sjeng uses proofnumbersearch instead 
@@ -23,7 +23,7 @@
 # Each entry is about 28 bytes.
 # Suicide/Giveaway and Losers only
 #
-4000000
+10000000
 #
 # Kingsafety scalefactor (range 0<->2.5)
 # This controls how much emphasis Sjeng will

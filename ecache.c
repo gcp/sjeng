@@ -45,7 +45,7 @@ void storeECache(long int score)
   index = hash % ECacheSize;
 
   ECache[index].stored_hash = hash;
-  ECache[index].hold_hash = hash;
+  ECache[index].hold_hash = hold_hash;
   ECache[index].score = score;
 }
 
@@ -58,7 +58,8 @@ void checkECache(long int *score, int *in_cache)
   index = hash % ECacheSize;
 
   if(ECache[index].stored_hash == hash &&
-	  ECache[index].hold_hash == hash)
+	  ECache[index].hold_hash == hold_hash)
+    
     {
       ECacheHits++;  
 

@@ -545,7 +545,7 @@ long int search (int alpha, int beta, int depth, int is_null) {
       if (egscore != KINGCAP)
 	return egscore;
     }
-    else if (piece_count <= 3 && (Variant == Suicide))
+    else if (piece_count <= 3 && (Variant == Suicide) && SEGTB)
     {
       EGTBProbes++;
       

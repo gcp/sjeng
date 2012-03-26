@@ -80,7 +80,7 @@ How do I get it to work ?
     
     #define HAVE_SYS_TIMEB_H
     #define HAVE_FTIME
-    #define VERSION "11.1"
+    #define VERSION "11.2"
 
     You may have to define _WIN32 also, if your compiler
     doesn't already do so.
@@ -337,4 +337,4 @@ http://www.chessclub.com
 Or even better, gather a few friends, 2 chessboards, 2 clocks,
 some beer, and have fun beating each other ;)
 
--- last revised 2001-9-28 -- gcp@sjeng.org --
+-- last revised 2001-12-27 -- gcp@sjeng.org --

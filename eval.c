@@ -398,8 +398,6 @@ long int eval (void) {
   
   if(in_cache)
     {
-      score += (white_hand_eval + black_hand_eval);
-      
       if (white_to_move == 1) return score;
       return -score;
     }
@@ -744,9 +742,9 @@ long int eval (void) {
     score += safety;
   }
   
-  storeECache(score);
-  
   score += (white_hand_eval + black_hand_eval);
+  
+  storeECache(score);
   
   /* adjust for color: */
   if (white_to_move == 1) {

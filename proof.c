@@ -207,7 +207,7 @@ void suicide_pn_eval(node_t *this)
   
   this->evaluated = TRUE;
 
-  if (piece_count <= 3 && (Variant == Suicide))
+  if (piece_count <= 3 && (Variant == Suicide) && SEGTB)
   {
     egscore = egtb(white_to_move);
 

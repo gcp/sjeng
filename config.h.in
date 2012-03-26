@@ -36,6 +36,9 @@
 /* Define if you have the gdbm library (-lgdbm).  */
 #undef HAVE_LIBGDBM
 
+/* Define if you have the m library (-lm).  */
+#undef HAVE_LIBM
+
 /* Name of package */
 #undef PACKAGE
 

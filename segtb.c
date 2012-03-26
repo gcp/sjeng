@@ -116,6 +116,8 @@ int cache_counter;
 cache_data table_cache[CACHE_SIZE];
 int temp_key;
 
+int SEGTB;
+
 int valid_2piece(int w, int b, int w_man, int b_man)
 {
   /* white piece on the wrong half-board? */
@@ -712,12 +714,12 @@ int init_segtb()
   
   if(!two_piece_data || !three_piece_data) 
     {
-       return;
+       return FALSE;
     }
   
   if(!load_2piece()) 
     {
-       return;
+       return FALSE;
     }
   
   for(i = 0; i < CACHE_SIZE; i++) 
@@ -734,7 +736,7 @@ int init_segtb()
   printf("Three-piece suicide endgame table cache %d kB\n", 
 	 (CACHE_SIZE * THREE_PIECE_SIZE) / 1024);
   
-  return 1;
+  return TRUE;
 }
 
 

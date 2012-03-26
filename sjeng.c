@@ -183,7 +183,11 @@ int main (int argc, char *argv[]) {
   clear_tt();
   
   init_egtb();
-  init_segtb();
+
+  if (init_segtb())
+    SEGTB = TRUE;
+  else
+    SEGTB = FALSE;
   
   EGTBProbes = 0;
   EGTBHits = 0;
