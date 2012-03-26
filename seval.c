@@ -117,11 +117,11 @@ long int suicide_mid_eval (void) {
 	break;
 
       case (wking):
-	score += scentral[i];
+	score += scentral[i] >> 1;
 	break;
 
       case (bking):
-	score -= scentral[i];
+	score -= scentral[i] >> 1;
 	break;
     }
   }

@@ -11,6 +11,9 @@ TODO
 17. If partner tells +++ override alpha-beta with a special check
 20. Slit up movegen to do captures and normal moves seperately
 21. Scale kingsafety by pieces in hand
+22. Implement a configuration file
+23. Add endgame database support
+24. Experiment with TD learning
 
 MAYBE
 
@@ -34,5 +37,3 @@ DONE
 DIDN'T WORK
 
 18. No legal move check if move is from hashtable
-
-

@@ -1,3 +1,57 @@
+2000-12-07  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.5.1
+
+	* newbook.c: BUILDTHRESHOLD, PLAYTHRESHOLD added
+
+	* sjeng.h: smaller movedate (int->unsig char)
+
+	* sjeng.c: (main): recognize 'variant giveaway'
+
+	* seval.c: (suicide_mid_eval): smaller king centralisation bonus
+
+	* search.c: (order_captures): fix MVV/LVA
+	(qsearch): slightly smaller futility cutoff
+	(search): more cautious check extension trigger
+	(search): no nullmove in endgames
+	(search): R=4 if depth > 12
+	(search): passed pawn extensions
+	
+	* protos.h: add new functions
+
+	* proof.c: (suicide_pn_eval): add early exit condition
+
+	* moves.c: use global from variable
+	(gen): remove 'from' in calls
+	(gen): use push_king_castle
+	(push_king_castle): added
+	(push_king): remove castling condition
+	(add_move): use global from
+
+	* eval.c: tweaked some piece-square tables
+	rewrote the (disabled) FULLEVAL code
+
+2000-10-24  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.4.3
+
+	* utils.c: (interrupt): return 0 on fallthrough
+
+	* epd.c: (run_epd_testsuite): do not report pn-time if
+	no pn-search was run
+	(run_epd_testsuite): use FILENAME_MAX
+	(check_solution): return FALSE on fallthrough
+	
+	* newbook.c: (*): use exit(EXIT_FAILURE)
+	(build_book): use FILENAME_MAX
+
+	* search.c: (think): short circuit if result var set
+	(think): add time cushion on book move
+	(think): do not exit without returning a var
+	(search): enfore greater or equal to 0 depth before extending
+
+	* proof.c: (proofnumbersearch): output game result
+
 2000-10-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.4.2

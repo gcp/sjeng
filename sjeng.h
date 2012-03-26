@@ -104,14 +104,14 @@ typedef enum {FALSE, TRUE} bool;
 #define bcq        4
 
 typedef struct {
-  int from;
-  int target;
-  int captured;
-  int cap_num;
-  int castled;
-  int was_promoted;
-  int ep; 
-  int promoted;	      
+  unsigned char from;
+  unsigned char target;
+  unsigned char captured;
+  unsigned char cap_num;
+  unsigned char castled;
+  unsigned char was_promoted;
+  unsigned char ep; 
+  unsigned char promoted;	      
 } move_s;
 
 #if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY)) 

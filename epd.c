@@ -207,13 +207,15 @@ int check_solution(char *inbuff, move_s cmove)
     }
   else
     printf("No best-move or avoid-move found!");
+
+  return FALSE;
 }
 
 void run_epd_testsuite(void)
 {
   FILE *testsuite;
   char readbuff[2000];
-  char testname[STR_BUFF];
+  char testname[FILENAME_MAX];
   char tempbuff[2000];
   float elapsed; 
   int nps;
@@ -257,8 +259,8 @@ void run_epd_testsuite(void)
       //cpu_end = clock();
      // rdelay(2);
      
-     elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
-     printf("Time: %f\n", elapsed);
+//     elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+//     printf("Time: %f\n", elapsed);
       
      if (interrupt()) rinput(tempbuff, STR_BUFF, stdin);
       

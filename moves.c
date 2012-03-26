@@ -32,6 +32,7 @@ int numb_moves;
 static move_s *genfor;
 
 int fcaptures;
+int gfrom;
 
 int kingcap; /* break if we capture the king */
 
@@ -96,8 +97,8 @@ bool check_legal (move_s moves[], int m) {
 }
 
 
-#define push_slide(f,t) if (board[(t)] != frame) push_slidE((f),(t))
-#define push_knight(f,t) if (board[(t)] != frame) push_knighT((f),(t))
+#define push_slide(t) if (board[(t)] != frame) push_slidE((t))
+#define push_knight(t) if (board[(t)] != frame) push_knighT((t))
 
 void gen (move_s moves[]) {
 
@@ -134,93 +135,94 @@ restart:
 	a++;
 
       from = i;
-    
+      gfrom = i;
+      
        switch (board[from]) {
        case (wpawn):
 	 /* pawn moves up one square: */
 	 if (board[from+12] == npiece) {
 	   /* only promotions when captures == TRUE */
 	   if (rank (from) == 7 && (Variant != Suicide)) {
-	     push_pawn (from, from+12, FALSE);
+	     push_pawn (from+12, FALSE);
 	   }
 	   else if (!captures) {
-	     push_pawn (from, from+12, FALSE);
+	     push_pawn (from+12, FALSE);
 
 	     /* pawn moving up two squares on its first move: */
 	     if (rank(from) == 2 && board[from+24] == npiece)
-	       push_pawn_simple (from, from+24);
+	       push_pawn_simple (from+24);
 	   }
 	 }
 	 /* pawn capturing diagonally: */
 	 if ((board[from+13]&1) == 0 && board[from+13] != frame)
-	   push_pawn (from, from+13, FALSE);
+	   push_pawn (from+13, FALSE);
 	 /* pawn captruing diagonally: */
 	 if ((board[from+11]&1) == 0 && board[from+11] != frame)
-	   push_pawn (from, from+11, FALSE);
+	   push_pawn (from+11, FALSE);
 	 /* ep move: */
 	 if (ep_square == from+13)
-	   push_pawn (from, from+13, TRUE);
+	   push_pawn (from+13, TRUE);
 	 /* ep move: */
 	 else if (ep_square == from+11)
-	   push_pawn (from, from+11, TRUE);
+	   push_pawn (from+11, TRUE);
 	 break;
        case (wknight):
 	 /* use the knight offsets: */
-	 push_knight (from, from+10);
-	 push_knight (from, from-10);
-	 push_knight (from, from+14);
-	 push_knight (from, from-14);
-	 push_knight (from, from+23);
-	 push_knight (from, from-23);
-	 push_knight (from, from+25);
-	 push_knight (from, from-25);
+	 push_knight (from+10);
+	 push_knight (from-10);
+	 push_knight (from+14);
+	 push_knight (from-14);
+	 push_knight (from+23);
+	 push_knight (from-23);
+	 push_knight (from+25);
+	 push_knight (from-25);
 	 break;
        case (wbishop):
 	 /* use the bishop offsets: */
-	 push_slide (from, from+13);
-	 push_slide (from, from-13);
-	 push_slide (from, from+11);
-	 push_slide (from, from-11);
+	 push_slide (from+13);
+	 push_slide (from-13);
+	 push_slide (from+11);
+	 push_slide (from-11);
 	 break;
        case (wrook):
 	 /* use the rook offsets: */
-	 push_slide (from, from+12);
-	 push_slide (from, from-12);
-	 push_slide (from, from+1);
-	 push_slide (from, from-1);
+	 push_slide (from+12);
+	 push_slide (from-12);
+	 push_slide (from+1);
+	 push_slide (from-1);
 	 break;
        case (wqueen):
 	 /* use the queen offsets: */
-	 push_slide (from, from+13);
-	 push_slide (from, from-13);
-	 push_slide (from, from+11);
-	 push_slide (from, from-11);
-	 push_slide (from, from+12);
-	 push_slide (from, from-12);
-	 push_slide (from, from+1);
-	 push_slide (from, from-1);
+	 push_slide (from+13);
+	 push_slide (from-13);
+	 push_slide (from+11);
+	 push_slide (from-11);
+	 push_slide (from+12);
+	 push_slide (from-12);
+	 push_slide (from+1);
+	 push_slide (from-1);
 	 break;
        case (wking):
 	 /* use the king offsets for 'normal' moves: */
-	  push_king (from, from+13, no_castle);
-	  push_king (from, from-13, no_castle);
-	  push_king (from, from+11, no_castle);
-	  push_king (from, from-11, no_castle);
-	  push_king (from, from+12, no_castle);
-	  push_king (from, from-12, no_castle);
-	  push_king (from, from+1, no_castle);
-	  push_king (from, from-1, no_castle);
+	  push_king (from+13);
+	  push_king (from-13);
+	  push_king (from+11);
+	  push_king (from-11);
+	  push_king (from+12);
+	  push_king (from-12);
+	  push_king (from+1);
+	  push_king (from-1);
 	  /* castling moves: */
 	  if (from == 30 && !moved[30] && !captures) {
 	    /* kingside: */
 	    if (!moved[33] && board[33] == wrook)
 	      if (board[31] == npiece && board[32] == npiece)
-		push_king (from, from+2, wck);
+		push_king_castle (from+2, wck);
 	    /* queenside: */
 	    if (!moved[26] && board[26] == wrook)
 	      if (board[27] == npiece && board[28] == npiece
 		  && board[29] == npiece)
-		push_king (from, from-2, wcq);
+		push_king_castle (from-2, wcq);
 	  }
 	  break;
         default:
@@ -244,6 +246,7 @@ restart:
 	a++;
 
       from = i; 
+      gfrom = i;
 
       switch (board[from]) {
       case (bpawn):
@@ -251,86 +254,86 @@ restart:
 	if (board[from-12] == npiece) {
 	  /* only promotions when captures == TRUE */
 	  if (rank (from) == 2 && (Variant != Suicide)) {
-	    push_pawn (from, from-12, FALSE);
+	    push_pawn (from-12, FALSE);
 	  }
 	  else if (!captures) {
-	    push_pawn (from, from-12, FALSE);
+	    push_pawn (from-12, FALSE);
 	  
 	  /* pawn moving up two squares on its first move: */
 	  if (rank(from) == 7 && board[from-24] == npiece)
-	    push_pawn_simple (from, from-24);
+	    push_pawn_simple (from-24);
 	  }
 	};
 	/* pawn capturing diagonally: */
 	if ((board[from-13]&1) == 1 && board[from-13] != npiece)
-	  push_pawn (from, from-13, FALSE);
+	  push_pawn (from-13, FALSE);
 	/* pawn capturing diagonally: */
 	if ((board[from-11]&1) == 1 && board[from-11] != npiece)
-	  push_pawn (from, from-11, FALSE);
+	  push_pawn (from-11, FALSE);
 	/* ep move: */
 	if (ep_square == from-13)
-	  push_pawn (from, from-13, TRUE);
+	  push_pawn (from-13, TRUE);
 	/* ep move: */
 	else if (ep_square == from-11)
-	  push_pawn (from, from-11, TRUE);
+	  push_pawn (from-11, TRUE);
 	  break;
       case (bknight):
 	/* use the knight offsets: */
-	push_knight (from, from+10);
-	push_knight (from, from-10);
-	push_knight (from, from+14);
-	push_knight (from, from-14);
-	push_knight (from, from+23);
-	push_knight (from, from-23);
-	push_knight (from, from+25);
-	push_knight (from, from-25);
+	push_knight (from+10);
+	push_knight (from-10);
+	push_knight (from+14);
+	push_knight (from-14);
+	push_knight (from+23);
+	push_knight (from-23);
+	push_knight (from+25);
+	push_knight (from-25);
 	  break;
       case (bbishop):
 	/* use the bishop offsets: */
-	push_slide (from, from+13);
-	push_slide (from, from-13);
-	push_slide (from, from+11);
-	push_slide (from, from-11);
+	push_slide (from+13);
+	push_slide (from-13);
+	push_slide (from+11);
+	push_slide (from-11);
 	break;
       case (brook):
 	/* use the rook offsets: */
-	push_slide (from, from+12);
-	push_slide (from, from-12);
-	push_slide (from, from+1);
-	push_slide (from, from-1);
+	push_slide (from+12);
+	push_slide (from-12);
+	push_slide (from+1);
+	push_slide (from-1);
 	break;
       case (bqueen):
 	/* use the queen offsets: */
-	push_slide (from, from+13);
-	push_slide (from, from-13);
-	push_slide (from, from+11);
-	push_slide (from, from-11);
-	push_slide (from, from+12);
-	push_slide (from, from-12);
-	push_slide (from, from+1);
-	push_slide (from, from-1);
+	push_slide (from+13);
+	push_slide (from-13);
+	push_slide (from+11);
+	push_slide (from-11);
+	push_slide (from+12);
+	push_slide (from-12);
+	push_slide (from+1);
+	push_slide (from-1);
 	break;
       case (bking):
 	  /* use the king offsets for 'normal' moves: */
-	push_king (from, from+13, no_castle);
-	push_king (from, from-13, no_castle);
-	push_king (from, from+11, no_castle);
-	push_king (from, from-11, no_castle);
-	push_king (from, from+12, no_castle);
-	push_king (from, from-12, no_castle);
-	push_king (from, from+1, no_castle);
-	push_king (from, from-1, no_castle);
+	push_king (from+13);
+	push_king (from-13);
+	push_king (from+11);
+	push_king (from-11);
+	push_king (from+12);
+	push_king (from-12);
+	push_king (from+1);
+	push_king (from-1);
 	/* castling moves: */
 	if (from == 114 && !moved[114] && !captures) {
 	  /* kingside: */
 	  if (!moved[117] && board[117] == brook)
 	    if (board[115] == npiece && board[116] == npiece)
-	      push_king (from, from+2, bck);
+	      push_king_castle (from+2, bck);
 	  /* queenside: */
 	  if (!moved[110] && board[110] == brook)
 	    if (board[111] == npiece && board[112] == npiece
 		&& board[113] == npiece)
-	      push_king (from, from-2, bcq);
+	      push_king_castle (from-2, bcq);
 	}
 	break;
       default:
@@ -347,6 +350,8 @@ restart:
 	{
 	  for (from = 26; from < 118; from++)
 	    {
+              gfrom = from;
+	      
 	      switch (board[from])
 		{
 		case (frame):
@@ -357,24 +362,24 @@ restart:
 		    {  
 		      if ((rank(from) != 8) && (rank(from) != 1))	
 			{
-			  try_drop(wpawn, from);
+			  try_drop(wpawn);
 			}
 		    }   
 		  if(holding[WHITE][wknight])
 		    {
-		      try_drop(wknight, from);
+		      try_drop(wknight);
 		    }
 		  if(holding[WHITE][wbishop])
 		    {
-		      try_drop(wbishop, from);
+		      try_drop(wbishop);
 		    }
 		  if(holding[WHITE][wrook])
 		    {
-		      try_drop(wrook, from);
+		      try_drop(wrook);
 		    }	
 		  if(holding[WHITE][wqueen])
 		    {
-		      try_drop(wqueen, from);
+		      try_drop(wqueen);
 		    }
 		};
 	    }
@@ -386,6 +391,8 @@ restart:
 	{
 	  for (from = 26; from < 118; from++)
 	    {
+	      gfrom = from;
+	      
 	      switch (board[from])
 		{
 		case (frame):
@@ -396,25 +403,25 @@ restart:
 		    {  
 		      if ((rank(from) != 8) && (rank(from) != 1))	
 			{
-			  try_drop(bpawn, from);
+			  try_drop(bpawn);
 			}
 		    }   
 		  if(holding[BLACK][bknight])
 		    {
-		      try_drop(bknight, from);
+		      try_drop(bknight);
 		    }
 		  if(holding[BLACK][bbishop])
 		    {
-		      try_drop(bbishop, from);
+		      try_drop(bbishop);
 		    }
 		  if(holding[BLACK][brook])
 		    {
-		      try_drop(brook, from);
-		  }	
+		      try_drop(brook);
+		    }	
 		  if(holding[BLACK][bqueen])
 		    {
-		      try_drop(bqueen, from);
-		  }
+		      try_drop(bqueen);
+		    }
 		};
 	    };
 	}
@@ -927,27 +934,22 @@ void make (move_s moves[], int i) {
   }
 }
 
-void add_move(int Pfrom, 
-	      int Ptarget,
-	      int Pcastled,
+void add_move(int Ptarget,
 	      int Ppromoted)
 {
-  genfor[numb_moves].from = Pfrom;
+  genfor[numb_moves].from = gfrom;
   genfor[numb_moves].target = Ptarget;
   genfor[numb_moves].captured = npiece;
-  genfor[numb_moves].castled = Pcastled;
+  genfor[numb_moves].castled = no_castle;
   genfor[numb_moves].promoted = Ppromoted;
   genfor[numb_moves].ep = FALSE;
-  genfor[numb_moves].was_promoted = FALSE;
   numb_moves++;
 
   return;	
 }
 
-void add_capture(int Pfrom,
-    		 int Ptarget,
+void add_capture(int Ptarget,
 		 int Pcaptured,
-		 int Pcastled,
 		 int Ppromoted,
 		 int Pep)
 {
@@ -959,25 +961,44 @@ void add_capture(int Pfrom,
   else
     if (Pcaptured != npiece) fcaptures = TRUE; 
   
-  genfor[numb_moves].from = Pfrom;
+  genfor[numb_moves].from = gfrom;
   genfor[numb_moves].target = Ptarget;
   genfor[numb_moves].captured = Pcaptured;
-  genfor[numb_moves].castled = Pcastled;
+  genfor[numb_moves].castled = no_castle;
   genfor[numb_moves].promoted = Ppromoted;
   genfor[numb_moves].ep = Pep;
-  genfor[numb_moves].was_promoted = FALSE;
   numb_moves++;
   
   return;
 }
 
-void try_drop (int ptype, int target)
+void try_drop (int ptype)
 {
-  add_move(0, target, no_castle, ptype);
+  genfor[numb_moves].from = 0;
+  genfor[numb_moves].target = gfrom;
+  genfor[numb_moves].captured = npiece;
+  genfor[numb_moves].castled = no_castle;
+  genfor[numb_moves].promoted = ptype;
+  genfor[numb_moves].ep = FALSE;
+  numb_moves++;
+  
   return;  
 }
 
-void push_king (int from, int target, int castle_type) {
+void push_king_castle (int Ptarget, int Pcastle_type)
+{
+  genfor[numb_moves].from = gfrom;
+  genfor[numb_moves].target = Ptarget;
+  genfor[numb_moves].captured = npiece;
+  genfor[numb_moves].castled = Pcastle_type;
+  genfor[numb_moves].promoted = 0;
+  genfor[numb_moves].ep = FALSE;
+  numb_moves++;
+  
+  return;
+}
+
+void push_king (int target) {
 
   /* add king moves to the moves array */
 
@@ -989,21 +1010,15 @@ void push_king (int from, int target, int castle_type) {
   if (board[target] == npiece && captures)
     return;
 
-  /* check for a castling move: */
-  if (castle_type) {
-    add_move(from, target, castle_type, 0);
-    return;
-  }
-
   /* non-capture, 'normal' king moves: */
   if (board[target] == npiece) {
-    add_move(from, target, no_castle, 0);
+    add_move(target, 0);
     return;
   }
 
   /* 'normal' capture moves by the king: */
-  else if ((board[target]&1) != (board[from]&1)) {
-    add_capture(from, target, board[target], no_castle, 0, FALSE);
+  else if ((board[target]&1) != (board[gfrom]&1)) {
+    add_capture(target, board[target], 0, FALSE);
     return;
   }
 
@@ -1012,7 +1027,7 @@ void push_king (int from, int target, int castle_type) {
 }
 
 
-void push_knighT (int from, int target) {
+void push_knighT (int target) {
 
   /* add knight moves to the moves array */
 
@@ -1022,13 +1037,13 @@ void push_knighT (int from, int target) {
 
   /* check for a non-capture knight move: */
   if (board[target] == npiece) {
-    add_move(from, target, no_castle, 0);
+    add_move(target, 0);
     return;
   }
 
   /* check for a capture knight move: */
-  else if ((board[target]&1) != (board[from]&1)) {
-    add_capture(from, target, board[target], no_castle, 0, FALSE);
+  else if ((board[target]&1) != (board[gfrom]&1)) {
+    add_capture(target, board[target], 0, FALSE);
     return;
   }
 
@@ -1037,8 +1052,7 @@ void push_knighT (int from, int target) {
 }
 
 
-void push_pawn (int from, int target, 
-		bool is_ep) {
+void push_pawn (int target, bool is_ep) {
 
   /* add pawn moves to the moves array */
 
@@ -1046,12 +1060,12 @@ void push_pawn (int from, int target,
 
   /* check to see if it's an ep move: */
   if (is_ep) {
-    if (board[from] == wpawn) {
-      add_capture(from, target, bpawn, no_castle, 0, TRUE);
+    if (board[gfrom] == wpawn) {
+      add_capture(target, bpawn, 0, TRUE);
 	  return;
     }
     else {
-      add_capture(from, target, wpawn, no_castle, 0, TRUE);
+      add_capture(target, wpawn, 0, TRUE);
       return;
     }
   }
@@ -1061,32 +1075,32 @@ void push_pawn (int from, int target,
   captured_piece = board[target];
   
   /* look for a white promotion move: */
-  if (board[from] == wpawn && rank(from) == 7) {
-    add_capture(from, target, captured_piece, no_castle, wqueen, FALSE);
-    add_capture(from, target, captured_piece, no_castle, wrook, FALSE);
-    add_capture(from, target, captured_piece, no_castle, wbishop, FALSE);
-    add_capture(from, target, captured_piece, no_castle, wknight, FALSE);
+  if (board[gfrom] == wpawn && rank(gfrom) == 7) {
+    add_capture(target, captured_piece, wqueen, FALSE);
+    add_capture(target, captured_piece, wrook, FALSE);
+    add_capture(target, captured_piece, wbishop, FALSE);
+    add_capture(target, captured_piece, wknight, FALSE);
     if (Variant == Suicide)
-      add_capture(from, target, captured_piece, no_castle, wking, FALSE);
+      add_capture(target, captured_piece, wking, FALSE);
     /* we've finished generating all the promotions: */
     return;
   }
 
   /* look for a black promotion move: */
-  else if (board[from] == bpawn && rank(from) == 2) {
-    add_capture(from, target, captured_piece, no_castle, bqueen, FALSE);
-    add_capture(from, target, captured_piece, no_castle, brook, FALSE);
-    add_capture(from, target, captured_piece, no_castle, bbishop, FALSE);
-    add_capture(from, target, captured_piece, no_castle, bknight, FALSE);
+  else if (board[gfrom] == bpawn && rank(gfrom) == 2) {
+    add_capture(target, captured_piece, bqueen, FALSE);
+    add_capture(target, captured_piece, brook, FALSE);
+    add_capture(target, captured_piece, bbishop, FALSE);
+    add_capture(target, captured_piece, bknight, FALSE);
     if (Variant == Suicide)
-      add_capture(from, target, captured_piece, no_castle, bking, FALSE);
+      add_capture(target, captured_piece, bking, FALSE);
     /* we've finished generating all the promotions: */
     return;
   }
 
   /* otherwise, we have a normal pawn move: */
   else {
-    add_capture(from, target, captured_piece, no_castle, 0, FALSE);
+    add_capture(target, captured_piece, 0, FALSE);
     return;
   }
 
@@ -1094,15 +1108,15 @@ void push_pawn (int from, int target,
   return;
 }
 
-void push_pawn_simple (int from, int target) {
+void push_pawn_simple (int target) {
 
   /* add pawn moves to the moves array */
   
-  add_move(from, target, no_castle, 0);
+  add_move(target, 0);
   return;
 }
 
-void push_slidE (int from, int target) {
+void push_slidE (int target) {
 
   /* add moves for sliding pieces to the moves array */
 
@@ -1114,22 +1128,22 @@ void push_slidE (int from, int target) {
  //   return;
 
   /* init variables: */
-  offset = target - from;
-  mycolor = board[from]&1;
+  offset = target - gfrom;
+  mycolor = board[gfrom]&1;
   
   /* loop until we hit the edge of the board, or another piece: */
   do {
     /* case when the target is an empty square: */
     if (board[target] == npiece) {
       if (!captures) {
-      add_move(from, target, no_castle, 0);
+      add_move(target, 0);
       }
       target += offset;
     }
 
     /* case when an enemy piece is hit: */
     else if ((board[target]&1) != mycolor) {
-      add_capture(from, target, board[target], no_castle, 0, FALSE);
+      add_capture(target, board[target], 0, FALSE);
       break;
     }
 

@@ -999,10 +999,10 @@ int interrupt(void)
     }
   }
 #else
+#endif
+#endif
+
   return 0;
-#endif
-#endif
-  
 }
 
 void PutPiece(int color, char piece, char pfile, int prank)

@@ -27,6 +27,9 @@
 #include "gdbm.h"
 #include <sys/stat.h>
 
+#define BUILDTHRESHOLD 2
+#define PLAYTHRESHOLD 5
+
 typedef struct 
 {
   unsigned long hashkey;
@@ -111,7 +114,7 @@ void add_current(GDBM_FILE binbook, pgn_header_t pgn_header)
   /* fill in the key field */
   key.hashkey = (hash ^ ToMove);
   
-  if (keycache[key.hashkey % kksize] > 0)
+  if (keycache[key.hashkey % kksize] >= BUILDTHRESHOLD)
     {
       
       index.dptr = (char*) &key;
@@ -319,7 +322,7 @@ void weed_book(GDBM_FILE binbook)
 	  data = gdbm_fetch(binbook, index);
 	  ps = data.dptr;   
 	  
-	  if ((ps->played) <= 2) 
+	  if ((ps->played) < PLAYTHRESHOLD) 
 	    {
 	      gdbm_delete(binbook, index);
 	      free(index.dptr);
@@ -347,7 +350,7 @@ void build_book (void)
   FILE *pgnbook;
   GDBM_FILE binbook;
   pgn_header_t pgn_header;
-  char bookname[STR_BUFF], kks[STR_BUFF];
+  char bookname[FILENAME_MAX], kks[STR_BUFF];
   
   printf("\nName of PGN book: ");
   rinput(bookname, STR_BUFF, stdin);
@@ -357,7 +360,7 @@ void build_book (void)
   if (pgnbook == NULL)
     {
       printf("PGN book not found!\n");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   
   if (Variant == Normal)
@@ -371,7 +374,7 @@ void build_book (void)
   if (binbook == NULL)
     {
       printf("Error opening binbook.\n");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   
   printf("\nSize of KeyCache (bytes): ");
@@ -384,8 +387,8 @@ void build_book (void)
   if (keycache == NULL)
     {
       printf("Not enough RAM!\n");
-      exit(1);
-		}
+      exit(EXIT_FAILURE);
+    }
   
   while (!feof(pgnbook))
     {
@@ -467,7 +470,7 @@ move_s choose_binary_book_move (void)
 	      printf("Move %s: %d times played\n", output,
 		     ps->played);
 	      
-	      if ((ps->played) >  2)
+	      if ((ps->played) >=  PLAYTHRESHOLD)
 		{
 		  scores[num_bookmoves] = ps->played;
 		  bookmoves[num_bookmoves] = moves[i];

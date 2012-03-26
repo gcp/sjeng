@@ -219,6 +219,8 @@ void suicide_pn_eval(node_t *this)
 	case bqueen:
 	case bknight: bp++; break;
 	}
+
+      if (wp && bp) break;
     }
   
   if (!wp)
@@ -484,7 +486,7 @@ void develop_node (node_t * node)
       /* check to see if our move is legal: */
       if (check_legal (&moves[0], i))
 	{
-  //        if (pn2)
+//          if (pn2)
 	    newnode = (node_t *) Xmalloc (sizeof (node_t));
 //	  else
 //	    newnode = (node_t *) malloc (sizeof (node_t));
@@ -567,7 +569,7 @@ void develop_node (node_t * node)
   
   ep_square = ept;
 
-  //if (!pn2) Xfree();
+//  if (!pn2) Xfree();
 };
 
 void update_ancestors (node_t * node)
@@ -617,7 +619,7 @@ pn2_eval (node_t * root)
   root->parent = 0;
 
   pn_eval (root);
-
+  
   set_proof_and_disproof_numbers (root);
 
   currentnode = root;
@@ -670,6 +672,22 @@ proofnumbersearch (void)
   membuff = (unsigned char *) calloc(MAXSEARCH + SAFETY, sizeof(node_t));
 
   pn_eval (root);
+  
+  if (root->value == FALSE)
+  {
+    if (root_to_move == WHITE)
+    {
+      result = white_is_mated;
+    }
+    else
+    {
+      result = black_is_mated;
+    }
+    
+    pn_move = dummy;
+    
+    return;
+  }
 
   set_proof_and_disproof_numbers (root);
 
@@ -685,8 +703,9 @@ proofnumbersearch (void)
 
       if ((iters % 64) == 0)
 	{
-	  //printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d ", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
-	  
+//	  printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
+
+#undef SHOWPVS	  
 #ifdef SHOWPVS
 	  printf ("PV: ");
 	  
@@ -802,11 +821,25 @@ proofnumbersearch (void)
 	  currentnode = currentnode->parent;
 	};
 
-      if (!kibitzed && xb_mode)
+      if (!kibitzed && xb_mode && post)
 	{
 	  kibitzed = TRUE;
 	  printf ("\ntellics kibitz Forced win in %d moves.\n", (ply+1)/2);
 	}
+
+      if (ply == 0) 
+      {
+	if (root_to_move == WHITE)
+	{
+	  printf("\n1-0 {White mates}\n");
+	  result = black_is_mated;
+	}
+	else
+	{
+	  printf("\n0-1 {Black mates}\n");
+	  result = white_is_mated;
+	}
+      }
 
       printf ("\n");
     }
@@ -814,7 +847,7 @@ proofnumbersearch (void)
     {
       root->value = FALSE;
       printf ("This position is LOST.\n");
-      
+
       pn_move = dummy;
     }
   else
@@ -897,7 +930,7 @@ move_s proofnumbercheck(move_s compmove)
 	}
     };
 
-  printf("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
+  printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
 
   while(currentnode != root)
   {
@@ -909,7 +942,7 @@ move_s proofnumbercheck(move_s compmove)
   
   if (root->proof == 0)
     {
-      if (xb_mode)
+      if (xb_mode && post)
 	printf("tellics whisper Panic move!\n");
       
       /* ok big problem our ab move loses */
@@ -942,15 +975,3 @@ move_s proofnumbercheck(move_s compmove)
   
   return resmove;
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -25,7 +25,7 @@
 #include "protos.h"
 #include "extvars.h"
 
-#define ECACHESIZE 200000
+#define ECACHESIZE 500000
 
 typedef struct  
 {

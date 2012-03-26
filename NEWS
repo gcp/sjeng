@@ -1,3 +1,18 @@
+Sjeng 7.5
+
+Suicide opening book
+Fixes to 'test' command
+Tweaked zh piece/square tables
+Tweaked suicide eval
+Optimized movegenerator
+Tweaked bookbuilding code
+Faster proof-number search
+Fixed MVV/LVA move ordering
+Better extension control
+Passed pawn extensions
+Don't nullmove in endgames
+More carefull R=4 usage
+
 Sjeng 7.4 (2000 WCCC Version)
 
 Support for suicide

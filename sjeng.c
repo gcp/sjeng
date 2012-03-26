@@ -394,7 +394,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-10-22)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2000-12-4)\n");
 	  }
 
 	if (!is_analyzing)
@@ -483,13 +483,19 @@ int main (int argc, char *argv[]) {
 	continue;
       }
       else if (!strcmp (input, "white")) {
-	white_to_move = 1;
-	root_to_move = WHITE;
+	//if (is_edit_mode)
+	//{
+	    white_to_move = 1;
+	    root_to_move = WHITE;
+	//};
 	comp_color = 0;
       }
       else if (!strcmp (input, "black")) {
-	white_to_move = 0;
-	root_to_move = BLACK;
+	//if (is_edit_mode)
+	//{
+	    white_to_move = 0;
+	    root_to_move = BLACK;
+	//};
 	comp_color = 1;
       }
       else if (!strcmp (input, "force")) {
@@ -538,6 +544,12 @@ int main (int argc, char *argv[]) {
 	    init_book();
 	  }
 	else if (strstr(input, "suicide"))
+	  {
+	    Variant = Suicide;
+	    memcpy(material, suicide_material, sizeof(suicide_material));
+	    init_book();
+	  }
+	else if (strstr(input, "giveaway"))
 	  {
 	    Variant = Suicide;
 	    memcpy(material, suicide_material, sizeof(suicide_material));

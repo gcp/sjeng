@@ -30,7 +30,7 @@ int std_material[] = { 0, 100, -100, 310, -310, 4000, -4000, 300, -300, 900, -90
 
 int zh_material[] = { 0, 100, -100, 210, -210, 4000, -4000, 250, -250, 450, -450, 230, -230, 0 }; 
 
-int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 200, -200, 250, -250, 230, -230, 0 }; 
+int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 250, -250, 150, -150, 200, -200, 0 }; 
 
 int material[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -141,7 +141,7 @@ const int black_pawn[144] = {
 const int white_king[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,   2,   5,   4,  15,  45  , 4,   5,   2,0,0,
+0,0, -50,   5,   4,  15,  45  , 4,   5, -50,0,0,
 0,0,-250,-200,-100, -50, -50,-100,-200,-250,0,0,
 0,0,-350,-300,-300,-250,-250,-300,-300,-350,0,0,
 0,0,-400,-400,-400,-350,-350,-400,-400,-400,0,0,
@@ -163,7 +163,7 @@ const int black_king[144] = {
 0,0,-400,-400,-400,-350,-350,-400,-400,-400,0,0,
 0,0,-350,-300,-300,-250,-250,-300,-300,-350,0,0,
 0,0,-250,-200,-100, -50, -50,-100,-200,-250,0,0,
-0,0,   2,   5,   4,  15,  45  , 4,   5,   2,0,0,
+0,0, -50,   5,   4,  15,  45  , 4,   5, -50,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -228,16 +228,16 @@ const int white_rook[144] = {
    and should never happen in the actual eval */
 
 const int pre_p_tropism[9] = 
-{ 9999, 120, 40, 20, 5, 2, 1, 0, 9999};
+{ 9999, 60, 40, 20, 5, 2, 1, 0, 9999};
 
 const int pre_r_tropism[9] = 
-{ 9999, 100, 40, 15, 5, 2, 1, 0, 9999};
+{ 9999, 120, 40, 15, 5, 2, 1, 0, 9999};
 
 const int pre_n_tropism[9] =
 { 9999, 70, 90, 35, 10, 2, 1, 0, 9999};
 
 const int pre_q_tropism[9] =
-{ 9999, 120, 60, 20, 5, 2, 0, 0, 9999};
+{ 9999, 160, 60, 20, 5, 2, 0, 0, 9999};
 
 const int pre_b_tropism[9] =
 { 9999, 60, 25, 15, 5, 2, 2, 2, 9999};
@@ -247,6 +247,9 @@ unsigned char q_tropism[144][144];
 unsigned char n_tropism[144][144];
 unsigned char r_tropism[144][144];
 unsigned char b_tropism[144][144];
+
+const int kingsafety[9] =
+{ -10, 5, 35, 70, 100, 200, 300, 400, 400};
 
 void initialize_eval(void)
 {
@@ -277,6 +280,7 @@ long int eval (void) {
   int i, a, j; 
   long int score = 0;
   int in_cache;
+#undef FULLEVAL
 #ifdef FULLEVAL
   int safety = 0, attackers, badsquares = 0; 
 #endif
@@ -398,59 +402,59 @@ long int eval (void) {
   /* white kingsafety */
   attackers = calc_attackers(wking_loc - 13, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc - 13, WHITE));
+    badsquares += min(1, max(0, attackers - calc_attackers(wking_loc - 13, WHITE)));
   attackers = calc_attackers(wking_loc - 12, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc - 12, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc - 12, WHITE)));
   attackers = calc_attackers(wking_loc - 11, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc - 11, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc - 11, WHITE)));
   attackers = calc_attackers(wking_loc - 1, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc - 1, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc - 1, WHITE)));
   attackers = calc_attackers(wking_loc + 1, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc + 1, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc + 1, WHITE)));
   attackers = calc_attackers(wking_loc + 11, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc + 11, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc + 11, WHITE)));
   attackers = calc_attackers(wking_loc + 12, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc + 12, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc + 12, WHITE)));
   attackers = calc_attackers(wking_loc + 13, BLACK);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(wking_loc + 13, WHITE));
+    badsquares += min(1,max(0, attackers - calc_attackers(wking_loc + 13, WHITE)));
 
-  safety -= badsquares * 25;
+  safety -= kingsafety[badsquares];
 
   badsquares = 0;
   /* black ksafety */
   attackers = calc_attackers(bking_loc - 13, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc - 13, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc - 13, BLACK)));
   attackers = calc_attackers(bking_loc - 12, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc - 12, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc - 12, BLACK)));
   attackers = calc_attackers(bking_loc - 11, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc - 11, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc - 11, BLACK)));
   attackers = calc_attackers(bking_loc - 1, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc - 1, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc - 1, BLACK)));
   attackers = calc_attackers(bking_loc + 1, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc + 1, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc + 1, BLACK)));
   attackers = calc_attackers(bking_loc + 13, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc + 13, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc + 13, BLACK)));
   attackers = calc_attackers(bking_loc + 12, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc + 12, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc + 12, BLACK)));
   attackers = calc_attackers(bking_loc + 11, WHITE);
   if (attackers)
-    badsquares += max(0, attackers - calc_attackers(bking_loc + 11, BLACK));
+    badsquares += min(1,max(0, attackers - calc_attackers(bking_loc + 11, BLACK)));
 
-  safety += badsquares * 25; 
+  safety += kingsafety[badsquares]; 
  
   score += ((white_to_move==1)?safety:-safety);
 #endif

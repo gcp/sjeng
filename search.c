@@ -43,16 +43,24 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
 
   /* sort out move ordering scores in move_ordering, using implemented
      heuristics: */
-
-  int cap_values[14] = {
+  static int cap_values[14] = {
     0,100,100,210,210,50000,50000,250,250,450,450,230,230,0};
 
-  int ncap_values[14] = {
+  static int cap_index[14] = {
+    0,1,1,2,2,6,6,4,4,5,5,3,3,0};
+
+  static int ncap_values[14] = {
     0,100,100,310,310,50000,50000,500,500,900,900,325,325,0};
 
-  int scap_values[14] = {
-    0,50,50,250,250,1000,1000,200,200,250,250,230,230,0};    
+  static int ncap_index[14] = {
+    0,1,1,2,2,6,6,4,4,5,5,3,3,0};
 
+  static int scap_values[14] = {
+    0,50,50,250,250,1000,1000,250,250,150,150,200,200,0};    
+	     
+  static int scap_index[14] = {
+    0,1,1,4,4,5,5,4,4,2,2,3,3,0};
+	    
   int promoted, captured;
   int i, from, target;
   /* fill the move ordering array: */
@@ -72,11 +80,11 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
       if (captured != npiece)
 	{
 	  if (Variant == Normal)
-	    move_ordering[i] = ncap_values[captured]-ncap_values[board[from]]+50000;    
+	    move_ordering[i] = ncap_values[captured]-ncap_index[board[from]]+50000;    
 	  else if (Variant == Suicide)
-	    move_ordering[i] = scap_values[captured]-scap_values[board[from]]+50000;    
+	    move_ordering[i] = scap_values[captured]-scap_index[board[from]]+50000;    
 	  else
-	    move_ordering[i] = cap_values[captured]-cap_values[board[from]]+50000;
+	    move_ordering[i] = cap_values[captured]-cap_index[board[from]]+50000;
 	}      
       else
 	move_ordering[i] = 0;
@@ -157,11 +165,11 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
       else if (captured != npiece)
 	{	  
 	  if (Variant == Normal)
-	    move_ordering[i] = ncap_values[captured]-ncap_values[board[from]]+50000;    
+	    move_ordering[i] = ncap_values[captured]-ncap_index[board[from]]+50000;    
 	  else if (Variant == Suicide)
-	    move_ordering[i] = scap_values[captured]-scap_values[board[from]]+50000;
+	    move_ordering[i] = scap_values[captured]-scap_index[board[from]]+50000;
 	  else
-	    move_ordering[i] = cap_values[captured]-cap_values[board[from]]+50000;
+	    move_ordering[i] = cap_values[captured]-cap_index[board[from]]+50000;
 	    
 	}      
       else
@@ -277,7 +285,7 @@ long int qsearch (int alpha, int beta, int depth) {
   sbest = -1;
   best_score = -INF;
     
-  delta = alpha-(Variant == Normal ? 100 : 200)-standpat;
+  delta = alpha-(Variant == Normal ? 90 : 180)-standpat;
 
   /* generate and order moves: */
   gen (&moves[0]);
@@ -296,7 +304,7 @@ long int qsearch (int alpha, int beta, int depth) {
     legal_move = FALSE;
 
     /* go deeper if it's a legal move: */
-    if (check_legal (&moves[0], i)) {
+//    if (check_legal (&moves[0], i)) {
       /* check whether it is a futile capture : 
 	 captured piece wont bring us back near alpha */
       /* warning : promotions should be accounted for */
@@ -320,7 +328,7 @@ long int qsearch (int alpha, int beta, int depth) {
 	  };
 	}
       else DeltaCuts++;
-    }
+//    }
 
     unmake (&moves[0], i);
     ply--;
@@ -427,8 +435,10 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   
   incheck = in_check();
 
+  if (depth <= 0) depth = 0;
+  
   /* perform check extensions if we haven't gone past maxdepth: */
-  if (ply < maxdepth+1 && incheck /*&& ((depth <= 0) || (Variant != Normal*/ && (ply < (i_depth*2))) 
+  if (ply < maxdepth+1 && incheck && ((depth <= 0) || (Variant != Normal && (ply < (i_depth*2))))) 
     {
       depth++;
       ext_check++;
@@ -436,7 +446,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
     }
   
   /* try to find a stable position before passing the position to eval (): */
-  if (depth <= 0) {
+  if (depth <= 0) 
+  {
 
     if (Variant != Suicide)
       {
@@ -486,7 +497,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 
   old_ep = ep_square;
 
-  if (((piece_count > 10) || (depth < 5)) && (is_null == FALSE) && !incheck && donull && (threat == FALSE) && (Variant != Suicide))
+  if (phase != Endgame && (is_null == FALSE) && !incheck && donull && (threat == FALSE) && (Variant != Suicide))
     {
 
       ep_square = 0;      
@@ -499,7 +510,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	score = -search(-beta, -beta+1, ((depth > 3) ? depth-2-1 : depth-1-1), TRUE);
       else
       {
-	if (depth > 9)
+	if (depth > 11)
 	  score = -search(-beta, -beta+1, depth-4-1, TRUE);
 	else if (depth > 6)
 	  score = -search(-beta, -beta+1, depth-3-1, TRUE);
@@ -543,7 +554,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   
   pv_length[ply] = ply;
  
-#define IDEEP
+#undef IDEEP
 #ifdef IDEEP
   /* Internal Iterative deepening */
   if ((best == -1) && (depth > 2) && (searching_pv)) 
@@ -615,12 +626,19 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       afterincheck = in_check();
       
       old_ep = ep_square;
+	
+      extend = 0; /* dont extend twice */
+     
+      if (!afterincheck && (Variant != Bughouse) && (Variant != Crazyhouse) &&
+         (((board[moves[i].target] == wpawn) && (rank(moves[i].target) == 7)
+      || ((board[moves[i].target] == bpawn) && (rank(moves[i].target) == 2)))))
+	 {
+	 	extend++;
+	 };
       
       /* go deeper if it's a legal move: */
       
       if (check_legal (&moves[0], i)) {
-	
-	extend = 0; /* dont extend twice */
 	
 	/* Razoring of uninteresting drops */
         if ((moves[i].from == 0)
@@ -632,7 +650,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	  { razor_drop++; extend--;};
 	
 	if (!selective || afterincheck 
-	    || (fmax + (abs(material[moves[i].captured]) * (Variant == Normal?1:2)) > alpha) 
+	    || (fmax + ((abs(material[moves[i].captured]) * (Variant == Normal?1:2))) > alpha) 
 	    || (moves[i].promoted)) 
 	  {
 	    
@@ -1164,6 +1182,8 @@ move_s think (void) {
 	 cpu_end = clock ();
 	 
 	 ep_square = ep_temp;
+    
+	 time_cushion += time_for_move+inc;
 	 
 	 return comp_move;
        }
@@ -1226,7 +1246,7 @@ move_s think (void) {
   else
      pn_move = dummy;
    
-   if (pn_move.target != dummy.target)
+   if (pn_move.target != dummy.target || result)
      {
        comp_move = pn_move;
      }
@@ -1338,7 +1358,7 @@ move_s think (void) {
 	 if (interrupt() && (i_depth > 1)) 
 	   {
 	     if (is_pondering)
-	       return;
+	       return dummy;
 	     else if (!go_fast)
 	       break;
 	   }
@@ -1383,12 +1403,16 @@ move_s think (void) {
        
   ep_square = ep_temp;
 
-  cpu_end = clock();
+  if (pn_move.target == dummy.target)
+  {
+  
+    cpu_end = clock();
 
-  et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+    et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
 
-  if (pn_move.target == dummy.target && (Variant == Suicide))
-    comp_move = proofnumbercheck(comp_move);
+    if (Variant == Suicide)
+      comp_move = proofnumbercheck(comp_move);
+  };
 
   /* update our elapsed time_cushion: */
   if (moves_to_tc) {

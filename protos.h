@@ -51,17 +51,16 @@ void post_fl_thinking (long int score, move_s *failmove);
 void post_fh_thinking (long int score, move_s *failmove);
 void post_fail_thinking(long int score, move_s *failmove);
 void print_move (move_s moves[], int m, FILE *stream);
-void push_king (int from, int target, 
-		int castle_type);
-void push_pawn (int from, int target,
-	bool is_ep); 
-void push_pawn_simple (int from, int target);
-void push_knighT (int from, int target);
+void push_pawn (int target, bool is_ep); 
+void push_king_castle (int target, int castle_type);
+void push_pawn_simple (int target);
+void push_king (int target);
+void push_knighT (int target);
 
-void try_drop (int ptype, int target);
+void try_drop (int ptype);
 		
 
-void push_slidE (int from, int target);
+void push_slidE (int target);
 long int qsearch (int alpha, int beta, int depth);
 void rdelay (int time_in_s);
 long int rdifftime (rtime_t end, rtime_t start);
