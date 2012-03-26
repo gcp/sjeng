@@ -149,6 +149,7 @@ void clear_dp_tt(void);
 
 move_s proofnumbercheck(move_s compmove);
 void proofnumbersearch(void);
+void proofnumberscan(void);
 
 void alloc_hash(void);
 void alloc_ecache(void);
@@ -166,6 +167,8 @@ int see(int color, int square, int from);
 
 void init_egtb(void);
 int probe_egtb(void);
+void gen_all_tables(void);
+int egtb(int s);
 
 #endif
 

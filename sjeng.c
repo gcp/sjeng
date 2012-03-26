@@ -87,6 +87,8 @@ long fixed_time;
 
 FILE *lrn_standard;
 FILE *lrn_zh;
+FILE *lrn_suicide;
+FILE *lrn_losers;
 
 int main (int argc, char *argv[]) {
 
@@ -103,6 +105,7 @@ int main (int argc, char *argv[]) {
   int pingnum;
   int braindeadinterface;
   int automode;
+  rtime_t xstart_time;
   
   read_rcfile();
   initialize_zobrist();
@@ -144,6 +147,34 @@ int main (int argc, char *argv[]) {
 	  lrn_zh = fopen ("bug.lrn", "rb+");
 	}
     }
+  if ((lrn_suicide = fopen ("suicide.lrn", "rb+")) == NULL)
+    {
+      printf("No suicide learn file.\n");
+
+      if ((lrn_suicide = fopen ("suicide.lrn", "wb+")) == NULL)
+	{
+	  printf("Error creating suicide learn file.\n");
+	}
+      else
+	{
+	  fclose(lrn_suicide);
+	  lrn_suicide = fopen ("suicide.lrn", "rb+");
+	}
+    }
+  if ((lrn_losers = fopen ("losers.lrn", "rb+")) == NULL)
+    {
+      printf("No losers learn file.\n");
+
+      if ((lrn_losers = fopen ("losers.lrn", "wb+")) == NULL)
+	{
+	  printf("Error creating losers learn file.\n");
+	}
+      else
+	{
+	  fclose(lrn_losers);
+	  lrn_losers = fopen ("losers.lrn", "rb+");
+	}
+    }
 
   start_up ();
   init_game ();
@@ -152,7 +183,8 @@ int main (int argc, char *argv[]) {
   clear_tt();
   
   init_egtb();
-
+  init_segtb();
+  
   EGTBProbes = 0;
   EGTBHits = 0;
   ECacheProbes = 0;
@@ -317,6 +349,7 @@ int main (int argc, char *argv[]) {
 		  }	
 	      }
 	      else {
+		if (comp_move.from != dummy.from || comp_move.target != dummy.target)
 		printf ("\n%s\n", output);
       	      }
 	    }
@@ -326,6 +359,7 @@ int main (int argc, char *argv[]) {
 		    printf ("move %s\n", output);
 	      }
 	      else {
+		if (comp_move.from != dummy.from || comp_move.target != dummy.target)
 		printf ("\n%s\n", output);
 	      }
 	      if (result == white_is_mated) {
@@ -443,6 +477,8 @@ int main (int argc, char *argv[]) {
       if (!strcmp (input, "quit")) {
 	fclose(lrn_standard);
 	fclose(lrn_zh);
+	fclose(lrn_suicide);
+	fclose(lrn_losers);
 	free_hash();
 	free_ecache();
 	exit (EXIT_SUCCESS);
@@ -459,6 +495,8 @@ int main (int argc, char *argv[]) {
 	    {
 	      fclose(lrn_standard);
 	      fclose(lrn_zh);
+	      fclose(lrn_suicide);
+	      fclose(lrn_losers);
 	      free_hash();
 	      free_ecache();
 	      exit (EXIT_SUCCESS);
@@ -470,14 +508,16 @@ int main (int argc, char *argv[]) {
       else if (!strncmp (input, "perft", 5)) {
 	sscanf (input+6, "%d", &depth);
 	raw_nodes = 0;
+	xstart_time = rtime();
 	perft (depth);
 	printf ("Raw nodes for depth %d: %ld\n", depth, raw_nodes);
+	printf("Time : %.2f\n", (float)rdifftime(rtime(), xstart_time)/100.);
       }
       else if (!strcmp (input, "new")) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2001-6-2/%s)\n", setcode);
+	    printf("tellics set 1 Sjeng " VERSION " (2001-9-28/%s)\n", setcode);
 	  }
 
 	if (!is_analyzing)
@@ -816,6 +856,14 @@ int main (int argc, char *argv[]) {
       }
       else if (!strncmp (input, "setboard", 8)) {
 	setup_epd_line(input+9);
+      }
+      else if (!strncmp (input, "buildegtb", 9)) {
+        Variant = Suicide;
+	gen_all_tables();
+      }
+      else if (!strncmp (input, "lookup", 6)) {
+	Variant = Suicide;
+        printf("Value : %d\n", egtb(white_to_move));
       }
       else if (!strncmp (input, ".", 1)) {
         /* periodic updating and were not searching */

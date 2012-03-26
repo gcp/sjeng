@@ -25,8 +25,8 @@
 #include "protos.h"
 #include "extvars.h"
 
-char book[4000][81];
-char book_flags[4000][21];
+char book[4000][161];
+char book_flags[4000][41];
 int num_book_lines;
 int book_ply;
 int use_book;
@@ -147,7 +147,7 @@ int init_book (void) {
 	   {
 	     commentmode = TRUE;
 	   }
-	 else if (j < 80 && i < 4000) /* middle of book line */
+	 else if (j < 160 && i < 4000) /* middle of book line */
 	   {
 	     book[i][j++] = ch;
 	     tagmode = FALSE;

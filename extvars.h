@@ -75,7 +75,7 @@ extern unsigned long TTStores;
 
 extern unsigned long hold_hash;
 
-extern char book[4000][81];
+extern char book[4000][161];
 extern int num_book_lines;
 extern int book_ply;
 extern int use_book;
@@ -102,12 +102,11 @@ extern unsigned long razor_drop, razor_material;
 extern unsigned long total_moves;
 extern unsigned long total_movegens;
 
-extern const int rank[144], file[144], diagl[144], diagr[144];
+extern const int rank[144], file[144], diagl[144], diagr[144], sqcolor[144];
 
 extern int Variant;
 extern int Giveaway;
 extern int forcedwin;
-extern int rootlosers[MOVE_BUFF];
 
 extern bool is_analyzing;
 
@@ -133,6 +132,7 @@ extern int phase;
 FILE *lrn_standard;
 FILE *lrn_zh;
 FILE *lrn_suicide;
+FILE *lrn_losers;
 extern int bestmovenum;
 
 extern int ugly_ep_hack;
@@ -145,6 +145,9 @@ extern int pn_time;
 extern move_s pn_move;
 extern move_s pn_saver;
 extern bool kibitzed;
+extern int rootlosers[PV_BUFF];
+extern int alllosers;
+extern int s_threat;
 
 extern int cfg_booklearn;
 extern int cfg_devscale;
@@ -182,3 +185,10 @@ extern int EGTBHits;
 extern int EGTBPieces;
 extern int EGTBCacheSize;
 extern char EGTBDir[STR_BUFF];
+
+
+
+
+
+
+

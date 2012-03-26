@@ -38,7 +38,7 @@ typedef struct
 {
   signed char Depth;  
   /* unsigned char may be a bit small for bughouse/crazyhouse */
-  unsigned char Bestmove;
+  unsigned short Bestmove;
   unsigned OnMove:1, Threat:1, Type:2;
   unsigned long Hash;
   unsigned long Hold_hash;
@@ -48,7 +48,7 @@ TType;
 
 typedef struct
 {
-  unsigned char Bestmove;
+  unsigned short Bestmove;
   unsigned OnMove:1, Type:2;
   unsigned long Hash;
   unsigned long Hold_hash;
@@ -223,7 +223,16 @@ void LearnStoreTT(int score, unsigned nhash, unsigned hhash, int tomove, int bes
   index = nhash % TTSize;
 
   AS_TTable[index].Depth = depth;
-  AS_TTable[index].Type = EXACT;
+  
+  if (Variant != Suicide && Variant != Losers)
+  {
+    AS_TTable[index].Type = EXACT;
+  }
+  else
+  {
+    AS_TTable[index].Type = UPPER;
+  }
+  
   AS_TTable[index].Hash = nhash;
   AS_TTable[index].Hold_hash = hhash;
   AS_TTable[index].Bestmove = best;

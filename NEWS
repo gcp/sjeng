@@ -1,3 +1,12 @@
+Sjeng 11
+
+New suicide mode
+New losers mode
+perft reports leaf nodes (like crafty)
+Suicide endgame databases
+Fix to movegen (>300 possible moves)
+No nullmove on pv 
+
 Sjeng 10.0
 
 Lots of stability improvements

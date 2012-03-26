@@ -59,8 +59,8 @@ void read_rcfile (void)
       TTSize = 300000;
       ECacheSize = 200000;
       PBSize = 200000;
-	  EGTBCacheSize = 0;
-	  strcpy(EGTBDir, "TB");
+      EGTBCacheSize = 0;
+      strcpy(EGTBDir, "TB");
       
       cfg_devscale = 1;
       cfg_scalefac = 1.0;
@@ -105,14 +105,6 @@ void read_rcfile (void)
   fgets(line, STR_BUFF, rcfile);
   while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
   sscanf(line, "%d", &PBSize);
-
-  fgets(line, STR_BUFF, rcfile);
-  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
-  sscanf(line, "%d", &EGTBCacheSize);
-
-  fgets(line, STR_BUFF, rcfile);
-  while (line[0] == '#') fgets(line, STR_BUFF, rcfile);
-  sscanf(line, "%s", &EGTBDir);
 
   fgets(line, STR_BUFF, rcfile);
   while (line[0] == '#') fgets(line, STR_BUFF, rcfile);

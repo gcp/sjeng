@@ -17,8 +17,6 @@ search enhancements like selective extensions, Aspiration
 Principal Variation Search, Adaptive nullmove pruning, 
 Extended Futility Pruning and Limited Razoring. Sjeng can 
 use an opening book and learns from the games it plays. 
-It can optionally use Nalimov endgame databases for perfect
-endgame play.
 
 In it's suicide and losers mode, Sjeng use proof-number 
 searches to quickly find forced wins. Sjeng plays at the 
@@ -61,19 +59,6 @@ How do I get it to work ?
     (su to root if needed)
     make install
  
-    If you want to squeeze the last bit of
-    performance out of Sjeng, try this:
-
-    ./configure
-    gcc -O9 -mpentiumpro -fomit-frame-pointer -fstrict-aliasing 
-    -fno-gcse -lgdbm -s -o sjeng blob2.c tbindex.cpp
-
-    If you do not have an x86 machine, or an older version
-    of gcc that doesn't recognize the '-mpentiumpro' flag,
-    you can safely remove it. If your machine has a lot of
-    hardware registers you can also remove the -fno-gcse
-    flag.
-
     If you notice Sjeng is only reporting time in full second
     increments, edit config.h and change #define HAVE_FTIME
     into #undef HAVE_FTIME.
@@ -95,7 +80,7 @@ How do I get it to work ?
     
     #define HAVE_SYS_TIMEB_H
     #define HAVE_FTIME
-    #define VERSION "10.0"
+    #define VERSION "11.1"
 
     You may have to define _WIN32 also, if your compiler
     doesn't already do so.
@@ -187,26 +172,19 @@ How do I get it to work ?
  http://eboard.sourceforge.net/ and has extensive support for Sjeng.
 
 
-Getting endgame databases
+Generating endgame databases
 -------------------------
 
-Sjeng support chess endgame databases in the (compressed)
-Nalimov format. These endgame databases contain the exact
-result for all positions with a certain material configuration.
-With these databases a chess engine is able to play the
-corresponding endgames *flawlessy*.
+Sjeng support endgame databases for the suicide
+variant. You can generate them as follows:
 
-Currently all possible configurations up to 5 pieces (2 kings +
-3 others) are available, as well as some 6 piece endgames.
+1) Make a subdirectory named 'stb' in Sjeng's
+   directory
+2) Start Sjeng form the command line and issue
+   the command 'buildegtb'
 
-The databases can be downloaded at 
-ftp://ftp.cis.uab.edu/pub/hyatt/TB
-
-The size for all 4 piece endgames is 30MB, for 5 pieces this
-increases to more than 6GB.
-
-You can specify the directory where the databases are stored
-in sjeng.rc, as well as the size of the database cache.
+This will take an hour or so, depending on the
+speed of your computer.
 
 
 Tuning Sjeng
@@ -359,4 +337,4 @@ http://www.chessclub.com
 Or even better, gather a few friends, 2 chessboards, 2 clocks,
 some beer, and have fun beating each other ;)
 
--- last revised 2001-6-6 -- gcp@sjeng.org --
+-- last revised 2001-9-28 -- gcp@sjeng.org --

@@ -690,9 +690,9 @@ else
 fi
 
 
-PACKAGE=Sjeng
+PACKAGE=Sjeng-Free
 
-VERSION=10.0
+VERSION=11.1
 
 if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
   { echo "configure: error: source directory already configured; run "make distclean" there first" 1>&2; exit 1; }

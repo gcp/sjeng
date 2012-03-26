@@ -1,6 +1,6 @@
 /*
    Sjeng - a chess variants playing program
-   Copyright (C) 2000 Gian-Carlo Pascutto
+   Copyright (C) 2000-2001 Gian-Carlo Pascutto
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "extvars.h"
 #include "protos.h"
 #include "limits.h"
+#include "math.h"
 
 #define FALSE 0
 #define TRUE 1
@@ -45,6 +46,7 @@ int nodecount2;
 int pn2;
 long frees;
 int iters;
+int forwards;
 int maxply;
 int ply;
 int pn_time;
@@ -54,7 +56,8 @@ move_s pn_saver;
 bool kibitzed;
 int forcedwin;
 
-int rootlosers[MOVE_BUFF];
+int rootlosers[PV_BUFF];
+int alllosers;
 
 typedef struct node
   {
@@ -200,9 +203,50 @@ void suicide_pn_eval(node_t *this)
 {
   int j, a, i;
   int wp = 0, bp = 0;
-
-  this->evaluated = TRUE;
+  int egscore;
   
+  this->evaluated = TRUE;
+
+  if (piece_count <= 3 && (Variant == Suicide))
+  {
+    egscore = egtb(white_to_move);
+
+    if (egscore != -128)
+    {
+      if (egscore > 0)
+      {
+	if (ToMove == root_to_move)
+	{
+	  this->value = TRUE;
+          return;
+	}
+	else
+	{
+	  this->value = FALSE;
+          return;
+	}
+      }
+      else if (egscore < 0)
+      {
+	if (ToMove == root_to_move)
+	{
+	  this->value = FALSE;
+	  return;
+	}
+	else
+	{
+	  this->value = TRUE;
+	  return;
+	}
+      }
+      else
+      {
+	this->value = UNKNOWN;
+	return;
+      }
+    }
+  }
+
   for (j = 1, a = 1; (a <= piece_count); j++) 
     {
       i = pieces[j];
@@ -484,6 +528,17 @@ void set_proof_and_disproof_numbers (node_t * node)
 		  disproof = node->children[i]->disproof;
 		}
 	    }
+	  
+	  if ((proof == 0) || (disproof == PN_INF))
+	    {
+	      forwards++;
+	      StoreTT(+INF-500, +INF, -INF, -1, 0, 200);
+	    }
+	  else if ((disproof == 0) || (proof == PN_INF))
+	    {
+	      forwards++;
+	      StoreTT(-INF+500, +INF, -INF, -1, 0, 200);
+	    }
 	}
       else
 	{
@@ -503,8 +558,21 @@ void set_proof_and_disproof_numbers (node_t * node)
 		  proof = node->children[i]->proof;
 		}
 	    }
-	}
 
+	  if ((proof == 0) || (disproof == PN_INF))
+	    {
+	      forwards++;
+	      StoreTT(+INF-500, +INF, -INF, -1, 0, 200);
+	    }
+	  else if ((disproof == 0) || (proof == PN_INF))
+	    {
+	      forwards++;
+	      StoreTT(-INF+500, +INF, -INF, -1, 0, 200);
+	    }
+	}
+	  
+      hash_history[move_number+ply-1] = hash; 
+	  
       node->proof = proof;
       node->disproof = disproof;
 
@@ -514,17 +582,17 @@ void set_proof_and_disproof_numbers (node_t * node)
       if (node->value == UNKNOWN)
 	{
 	  
-		  hash_history[move_number+ply-1] = hash; 
+	  hash_history[move_number+ply-1] = hash; 
 
-		if (is_draw() || ply > 200)
+	  if (is_draw() || ply > 200)
 	    {
-	      node->proof = 5000;
-	      node->disproof = 5000;
+	      node->proof = 50000;
+	      node->disproof = 50000;
 	      return;
 	    }
-		
-		//ept = ep_square;
-
+	  
+	  //ept = ep_square;
+	  
 	  if (Variant != Losers)
 	    {
 	      num_moves = 0;
@@ -613,47 +681,64 @@ void set_proof_and_disproof_numbers (node_t * node)
 	    {
 	      if ((Variant != Suicide) && (Variant != Losers))
 		{
-		  node->proof = 1 + (ply / 6);
-		  node->disproof = l + (ply  / 6);
+		  node->proof = 1 + floor(ply / 50);
+		  node->disproof = l + floor(ply  / 50);
 		}
 	      else
 		{
-		  if (ply > 100)
-		  {
-			  /* this is probably a bogus line,
-			     so breathen the tree */
-			  node->proof = 1 + ((ply-100)/2);
-			  node->disproof = 1 + ((ply-100)/2);
-		  }
+		  if (Variant == Losers)
+		    {
+		      /* this is probably a bogus line,
+			 so breathen the tree */
+		      if (phase == Endgame)
+		      {
+			node->proof = 1 + floor(ply / 30);
+			node->disproof = l + floor(ply / 30);
+		      }
+		      else
+		      {
+			node->proof = 1 + floor(ply / 80);
+			node->disproof = l + floor(ply / 80);
+		      }
+		    }
 		  else
-		  {
-		  node->proof = 1;
-		  node->disproof = l;
-		  }
+		    {
+		      node->proof = 1 + floor(ply / 150);
+		      node->disproof = l + floor(ply / 150);
+		    }
 		}
 	    }
 	  else
 	    {
 	      if ((Variant != Suicide) && (Variant != Losers))
 		{
-		  node->proof = l + (ply / 6);
-		  node->disproof = 1 + (ply / 6);
+		  node->proof = l + floor(ply / 50);
+		  node->disproof = 1 + floor(ply / 50);
 		}
 	      else
 		{
-		  if (ply > 100)
-		  {
-			  node->proof = 1 + ((ply-100)/2);
-			  node->disproof = 1 + ((ply-100)/2);
-		  }
+		  if (Variant == Losers)
+		    {
+		      if (phase == Endgame)
+		      {
+			  node->proof = l + floor(ply/30);
+			  node->disproof = 1 + floor(ply/30);
+			
+		      }
+		      else
+		      {
+			  node->proof = l + floor(ply/80);
+			  node->disproof = 1 + floor(ply/80);
+		      }
+		    }
 		  else
-		  {
-		  node->proof = l;
-		  node->disproof = 1;
-		  }
+		    {
+		      node->proof = l + floor(ply / 150);
+		      node->disproof = 1 + floor(ply / 150);
+		    }
 		}
 	    }
-
+	  
 	  //ep_square = ept;
 	}
       else if (node->value == FALSE)
@@ -669,8 +754,8 @@ void set_proof_and_disproof_numbers (node_t * node)
       else if (node->value == STALEMATE)
 	{
 	  /* don't look at this node, its a dead-end */
-	  node->proof = 5000;
-	  node->disproof = 5000;
+	  node->proof = 50000;
+	  node->disproof = 50000;
 	};
     }
   else
@@ -753,6 +838,8 @@ void develop_node (node_t * node)
 
   for (i = 0; i < num_moves; i++)
     {
+      hash_history[move_number+ply-1] = hash; 
+      
       make (&moves[0], i);
 
       /* check to see if our move is legal: */
@@ -926,6 +1013,295 @@ pn2_eval (node_t * root)
   
 };
 
+void proofnumberscan (void)
+{
+ move_s moves[MOVE_BUFF];
+ int islegal[MOVE_BUFF];
+ int nodesspent[MOVE_BUFF];
+ int i, l, legal;
+ int num_moves;
+ rtime_t xstart_time;
+ node_t *root;
+ node_t *mostproving;
+ node_t *currentnode;
+ int leastlooked, leastlooked_l, leastlooked_i;
+ int losers;
+ int xnodecount;
+ int firsts, alternates;
+ char output[8];
+ int ic;
+ float bdp;
+ int altlosers;
+ 
+ xstart_time = rtime ();
+ 
+ membuff = (unsigned char *) calloc(PBSize, sizeof(node_t));
+ 
+ root = (node_t *) calloc (1, sizeof (node_t));
+
+ gen (&moves[0]);
+ num_moves = numb_moves;
+
+ alllosers = FALSE;
+ memset(rootlosers, 0, sizeof(rootlosers));
+ memset(nodesspent, 0, sizeof(nodesspent));
+ 
+ pn_move = dummy;
+ 
+ legal = 0;
+
+ ic = in_check();
+ 
+ for (i = 0; i < num_moves; i++)
+   {
+     make (&moves[0], i);
+     
+     /* check to see if our move is legal: */
+     if (check_legal (&moves[0], i, ic))
+       {
+	 legal++;
+	 islegal[i] = 1;
+       }
+     else
+       {
+	 islegal[i] = 0;
+       };
+     
+     unmake(&moves[0], i);
+   }
+
+ if (legal == 0)
+ {
+   Xfree();
+   free(membuff);
+   free(root);
+   return;
+ }
+ 
+ losers = 0;
+ 
+ nodecount = 1;
+ iters = 0;
+ maxply = 0;
+ forwards = 0;
+ firsts = 0;
+ alternates = 0;
+ hash_history[move_number+ply-1] = hash; 
+ root_to_move = ToMove;
+
+ pn_eval (root);
+
+ if (root->value == TRUE || root->value == FALSE)
+ {
+   Xfree();
+   free(membuff);
+   free(root);
+   pn_move = dummy;
+   return;
+  }
+
+ set_proof_and_disproof_numbers (root);
+     
+ while ((rdifftime (rtime (), xstart_time) < pn_time) && !interrupt()
+	&& (bufftop < ((PBSize-SAFETY) * sizeof(node_t))) 
+	&& root->proof != 0 && root->disproof != 0)
+   {
+     
+     iters++; 
+     xnodecount = nodecount;
+
+     if ((nodecount % 100) < 66)
+       {
+	 firsts++;
+	 
+	 /* pick normal pn move */
+	 currentnode = root;
+	 
+	 mostproving = select_most_proving (currentnode);
+	 develop_node (mostproving);
+	 update_ancestors (mostproving);
+
+	 /* what was the mostproving node ? */
+	 i = 0;
+	 while (root->children[i]->proof != root->proof) i++;
+
+	 nodesspent[i] += nodecount - xnodecount;
+
+	 if (root->proof == 0 && root->disproof == PN_INF)
+	   {	 
+	     forcedwin = TRUE;
+	     
+	     if (!kibitzed)
+	       {
+		 kibitzed = TRUE;
+		 printf("tellics kibitz Forced win!\n");
+	       }
+              
+	     pn_move = root->children[i]->move;
+
+	   }
+	 else if (root->disproof == 0 && root->proof == PN_INF)
+	   {
+	     pn_move = dummy;
+	     losers++;
+	   }
+       } 
+     else
+       {
+	 /* pick alternate move */
+	 alternates++;
+
+	 leastlooked = PN_INF;
+         l = 0;
+	 
+	 for (i = 0; i < num_moves; i++)
+	   {
+	     if ((nodesspent[i] < leastlooked) && islegal[i] && !rootlosers[i])
+	       {
+		 leastlooked = nodesspent[i];
+		 leastlooked_i = i;
+		 leastlooked_l = l;
+	       }
+	     if (islegal[i]) l++;
+	   }
+
+	 if (leastlooked == PN_INF)
+	 {
+	   /*  could not find a nonlosing legal move */
+	   nodecount += 30;
+	   continue;
+	 }
+	  
+	 make(&moves[0], leastlooked_i);
+
+	 currentnode = root->children[leastlooked_l];
+	 
+	 mostproving = select_most_proving (currentnode);
+	 develop_node (mostproving);
+	 update_ancestors (mostproving);
+
+	 nodesspent[leastlooked_i] += nodecount - xnodecount;
+	 
+	 /* should be back at root now */
+
+	 if (root->children[leastlooked_l]->proof == 0 &&
+	     root->children[leastlooked_l]->disproof == PN_INF)
+	   {
+	     /* alternate move was forced win */
+	     forcedwin = TRUE;
+	     
+	     if (!kibitzed)
+	       {
+		 kibitzed = TRUE;
+		 printf("tellics kibitz Forced win! (alt)\n");
+	       }	     
+
+	     pn_move = root->children[leastlooked_l]->move;
+	   }
+	 else if (root->children[leastlooked_l]->disproof == 0
+	     &&   root->children[leastlooked_l]->proof == PN_INF)
+	   {
+	     /* alternate move loses */
+	     rootlosers[leastlooked_i] = 1;
+	     losers++;
+	   }
+       }             	
+   };
+
+ l = 0;
+ bdp = -1;
+ altlosers = 0;
+ 
+ if (root->expanded)
+ {
+ for (i = 0; i < num_moves; i++)
+ {
+   if (islegal[i])
+   {
+     comp_to_san(moves[i], output);
+     //printf("checked %s, nodes: %d, pn: %d, dp: %d\n", 
+ //        output, nodesspent[i], root->children[l]->proof, root->children[l]->disproof);
+
+     if (root->children[l]->proof != 0)
+     {
+       if (((float)root->children[l]->disproof / (float)root->children[l]->proof) > bdp)
+       {
+         bdp = ((float)root->children[l]->disproof / (float)root->children[l]->proof);
+	 pn_move = root->children[l]->move;
+       }
+
+       if ((root->children[l]->disproof == 0) && (root->children[l]->proof == PN_INF))
+       {
+	 altlosers++;
+	 
+	 make(&moves[0], i);
+
+	 Learn(-INF+500, 255, 200);
+
+	 unmake(&moves[0], i);
+
+       }
+     }
+     else
+     {
+       forcedwin = TRUE;
+       pn_move = root->children[l]->move;
+       bdp = PN_INF;
+     }
+   l++;
+   }
+ }
+ }
+
+ comp_to_san(pn_move, output);
+
+ if (xb_mode && post)
+    printf ("tellics whisper proof %d, disproof %d, %d losers, highest depth %d, primary %d, secondary %d\n", root->proof, root->disproof, altlosers, maxply, firsts, alternates);
+
+#if 0
+ if (forcedwin && maxply == 0)
+ {
+	if (root_to_move == WHITE)
+	{
+	  result = black_is_mated;
+	}
+	else
+	{
+	  result = white_is_mated;
+	}
+ }
+#endif
+ 
+ if (altlosers == (legal - 1))
+ {
+   printf("tellics whisper Forced reply\n");
+   
+   for (i = 0; i < num_moves; i++)
+       {
+	 if (!rootlosers[i] && islegal[i])
+	 {
+	   /* not really forced win but setting this flag
+	    * just means 'blindy trust pnsearch' */
+	   forcedwin = TRUE;
+	   pn_move = moves[i];
+	   break;
+	 }
+       }
+ }
+ 
+ if (altlosers == legal)
+ {
+   alllosers = TRUE;
+ }
+ 
+ Xfree();
+ free(membuff);
+ free(root);
+
+ return;
+ 
+};
+			     
 
 void 
 proofnumbersearch (void)
@@ -933,7 +1309,7 @@ proofnumbersearch (void)
   node_t *root;
   node_t *mostproving;
   node_t *currentnode;
-  rtime_t start_time;
+  rtime_t xstart_time;
   char output[8192];
   char PV[8192];
   int i;
@@ -945,16 +1321,13 @@ proofnumbersearch (void)
   frees = 0;
   ply = 1;
   maxply = 0;
-  
+  forwards = 0;
   hash_history[move_number+ply-1] = hash; 
-  
   root_to_move = ToMove;
   
   //eps = ep_square;
 
-  memset(rootlosers, 0, sizeof(rootlosers));
-  
-  start_time = rtime ();
+  xstart_time = rtime ();
 
   root = (node_t *) calloc (1, sizeof (node_t));
 
@@ -964,17 +1337,10 @@ proofnumbersearch (void)
   
   if (root->value == FALSE)
   {
-    if (root_to_move == WHITE)
-    {
-      result = white_is_mated;
-    }
-    else
-    {
-      result = black_is_mated;
-    }
-    
     pn_move = dummy;
-    
+    Xfree();
+    free(root);
+    free(membuff);
     return;
   }
 
@@ -1044,7 +1410,7 @@ proofnumbersearch (void)
 
 	  printf("\n");
 #endif
-      	  if ((rdifftime (rtime (), start_time) > pn_time) && !interrupt())
+      	  if ((rdifftime (rtime (), xstart_time) > pn_time) && !interrupt())
        	    break;
 	}
     };
@@ -1052,10 +1418,10 @@ proofnumbersearch (void)
   printf ("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d MaxDepth: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof (node_t) / (float) (1024 * 1024))), iters,maxply);
 
   if (xb_mode && post)
-    printf ("tellics whisper proof %d, disproof %d, %d nodes, %d iters, highest depth %d\n", root->proof, root->disproof, nodecount, iters, maxply);
+    printf ("tellics whisper proof %d, disproof %d, %d nodes, %d forwards, %d iters, highest depth %d\n", root->proof, root->disproof, nodecount, forwards, iters, maxply);
   
   if (!xb_mode)
-    printf("Time : %f\n", (float)rdifftime(rtime(), start_time)/100.);
+    printf("Time : %f\n", (float)rdifftime(rtime(), xstart_time)/100.);
   
   while (currentnode != root)
     {
@@ -1172,11 +1538,6 @@ proofnumbersearch (void)
 	pn_move = root->children[i]->move;
 	break;
       }
-
-      if (root->children[i]->disproof == 0)
-	rootlosers[i] = TRUE;
-      else
-	rootlosers[i] = FALSE;
     };
 
   pn_saver = pn_move;
@@ -1195,8 +1556,13 @@ move_s proofnumbercheck(move_s compmove)
   node_t* root;
   node_t *mostproving;
   node_t *currentnode;
-  rtime_t start_time;
+  rtime_t xstart_time;
   move_s resmove;
+  
+  if (piece_count <= 3 && (Variant == Suicide))
+  {
+    return compmove;
+  }
   
   nodecount = 0;
   iters = 0;
@@ -1213,7 +1579,7 @@ move_s proofnumbercheck(move_s compmove)
   
   //eps = ep_square;
   
-  start_time = rtime();
+  xstart_time = rtime();
   
   root = (node_t *) calloc(1, sizeof(node_t));
 
@@ -1237,7 +1603,7 @@ move_s proofnumbercheck(move_s compmove)
       if ((iters % 32) == 0)
 	{
 	  //	 printf("P: %d D: %d N: %d S: %d Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
-	  if ((rdifftime (rtime (), start_time) > pn_time))
+	  if ((rdifftime (rtime (), xstart_time) > pn_time))
 	    break;
 	}
     };
@@ -1254,15 +1620,13 @@ move_s proofnumbercheck(move_s compmove)
   
   if (root->proof == 0)
     {
-      if (xb_mode && post)
-	printf("tellics whisper Panic move!\n");
-      
       /* ok big problem our ab move loses */
       root->value = TRUE;
 
       /* use best disprover instead */
       resmove = pn_move;
-	         
+
+      s_threat = TRUE;
     }
   else if (root->disproof == 0)
     {

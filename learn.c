@@ -52,6 +52,14 @@ void Learn(int score, int best, int depth)
     {
       lrnfile = &lrn_zh;
     }
+  else if (Variant == Suicide)
+  {
+      lrnfile = &lrn_suicide;
+  }
+  else if (Variant == Losers)
+  {
+      lrnfile = &lrn_losers;
+  }
   else
     return;
 
@@ -93,9 +101,9 @@ void LoadLearn(void)
     return;
   else if ((Variant == Normal) && !lrn_standard)
     return;
-  else if (Variant == Suicide)
+  else if (Variant == Suicide && !lrn_suicide)
     return;
-  else if (Variant == Losers)
+  else if (Variant == Losers && !lrn_losers)
     return;
   
   if (Variant == Normal)
@@ -110,6 +118,10 @@ void LoadLearn(void)
     {
       lrnfile = &lrn_suicide;
     }
+  else if (Variant == Losers)
+  {
+      lrnfile = &lrn_losers;
+  }
 
   fseek(*lrnfile, 0, SEEK_SET);
   fread(&number, sizeof(int), 1, *lrnfile);

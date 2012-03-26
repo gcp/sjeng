@@ -29,6 +29,8 @@
 #include "protos.h"
 #include "extvars.h"
 
+#undef USE_EGTB
+
 #define  XX  127
 #define  KINGCAP 50000
 
@@ -90,11 +92,12 @@ char EGTBDir[STR_BUFF];
 
 void init_egtb(void)
 {
+#ifdef USE_EGTB
   void *buffer;
 
   buffer = malloc(EGTBCacheSize);
 
-  if (buffer == NULL) 
+  if (buffer == NULL && (EGTBCacheSize != 0)) 
   {
 	printf("Could not allocate EGTB buffer.\n");
 	exit(EXIT_FAILURE);
@@ -105,13 +108,17 @@ void init_egtb(void)
   printf("%d piece endgame tablebases found\n", EGTBPieces);
   printf("Allocated %dKb for indices and tables.\n",((cbEGTBCompBytes+1023)/1024));
   
-  if((EGTBCacheSize != 0) && (FTbSetCacheSize (buffer, EGTBCacheSize) == FALSE))
+  if(FTbSetCacheSize (buffer, EGTBCacheSize) == FALSE
+      && (EGTBCacheSize != 0))
   {
   	printf("Could not enable EGTB buffer.\n");
 	exit(EXIT_FAILURE);
   };
   
   return;
+#else
+  return;
+#endif
 }
 
 const static int EGTranslate(int sqidx)
@@ -125,6 +132,7 @@ const static int EGTranslate(int sqidx)
 
 int probe_egtb(void)
 {
+#ifdef USE_EGTB
   int *psqW, *psqB;
   int rgiCounters[10] = {0,0,0,0,0,0,0,0,0,0};
   int side;
@@ -283,5 +291,8 @@ int probe_egtb(void)
   {
   	return ((tbScore+bev_mi1)*2-INF+ply);
   }
-  return 0;  
+  return 0;
+#else
+  return KINGCAP;
+#endif
 }

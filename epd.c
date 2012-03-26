@@ -257,15 +257,15 @@ void run_epd_testsuite(void)
       
       display_board(stdout, 1); 
  
-     
-      //pn_time = thinktime;
-      //cpu_start = clock();
-      //proofnumbersearch();
-      //cpu_end = clock();
+      forcedwin = FALSE;    
+    //  pn_time = thinktime;
+    //  cpu_start = clock();
+    //  proofnumbersearch();
+    //  cpu_end = clock();
      // rdelay(2);
      
-//     elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
-//     printf("Time: %f\n", elapsed);
+     elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+     printf("Time: %f\n", elapsed);
       
      if (interrupt()) rinput(tempbuff, STR_BUFF, stdin);
       
@@ -306,7 +306,9 @@ void run_epd_testsuite(void)
       
       printf("Material score: %d   Eval : %d\n", Material, eval());
       printf("\n");
-      
+     
+      if (!forcedwin)
+      {
       if(check_solution(readbuff, comp_move))
 	{
 	  found++;
@@ -316,6 +318,11 @@ void run_epd_testsuite(void)
 	{
 	  printf("Solution not found.\n");
 	}
+      }
+      else
+      {
+	found++;
+      }
       
       printf("Solved: %d/%d\n", found, tested);
       

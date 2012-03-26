@@ -133,9 +133,9 @@ typedef time_t rtime_t;
 #endif
 
 #define STR_BUFF 256
-#define MOVE_BUFF 300
+#define MOVE_BUFF 512
 #define INF 1000000
-#define PV_BUFF 100
+#define PV_BUFF 300
 
 #define AddMaterial(x) Material += material[(x)]
 #define RemoveMaterial(x) Material -= material[(x)]

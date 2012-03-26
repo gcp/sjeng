@@ -257,7 +257,7 @@ void removeHolding(int what, int who)
     {
 
       assert(holding[who][what] > 0);
-      assert(holding[who][what] < 10);	
+      assert(holding[who][what] < 20);	
       
       HHash(what, holding[who][what]);
       
@@ -300,7 +300,7 @@ void DropremoveHolding(int what, int who)
 {
   assert(holding[who][what] > 0);
 
-  assert(holding[who][what] < 10);	
+  assert(holding[who][what] < 20);	
 
   HHash(what, holding[who][what]);
   

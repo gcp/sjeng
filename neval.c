@@ -345,6 +345,9 @@ long int end_eval (void) {
 	    }
 	}
 
+	if (!pawns[1][pawn_file-1])
+	  score -= 7;
+	
 	break;
 
       case (bpawn):
@@ -454,6 +457,9 @@ long int end_eval (void) {
 		}
 	    }
 	}
+
+	if (!pawns[0][pawn_file-1])
+	  score += 7;
 
 	break;
 
@@ -948,6 +954,9 @@ long int mid_eval (void) {
 	    }
 	}
 
+	if (!pawns[1][pawn_file-1])
+	  score -= 5;
+
 	break;
 
       case (bpawn):
@@ -1023,6 +1032,9 @@ long int mid_eval (void) {
 		}
 	    }
 	}
+
+	if (!pawns[0][pawn_file-1])
+	  score += 5;
 
 	break;
 

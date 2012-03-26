@@ -31,68 +31,90 @@ int std_material[] = { 0, 100, -100, 310, -310, 4000, -4000, 500, -500, 900, -90
 
 int zh_material[] = { 0, 100, -100, 210, -210, 4000, -4000, 250, -250, 450, -450, 230, -230, 0 }; 
 
-int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 250, -250, 150, -150, 200, -200, 0 };
+int suicide_material[] = { 0, 15, -15, 150, -150, 500, -500, 150, -150, 50, -50, 0, 0, 0 };
 
-int losers_material[] = { 0, 100, -100, 320, -320, 1000, -1000, 350, -350, 400, -400, 270, -270, 0 }; 
+int losers_material[] = { 0, 80, -80, 320, -320, 1000, -1000, 350, -350, 400, -400, 270, -270, 0 }; 
 
 int material[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; 
 
 const int file[144] =
-{0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0};
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
 
 const int rank[144] =
-{0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,1,1,1,1,1,1,1,1,0,0,
- 0,0,2,2,2,2,2,2,2,2,0,0,
- 0,0,3,3,3,3,3,3,3,3,0,0,
- 0,0,4,4,4,4,4,4,4,4,0,0,
- 0,0,5,5,5,5,5,5,5,5,0,0,
- 0,0,6,6,6,6,6,6,6,6,0,0,
- 0,0,7,7,7,7,7,7,7,7,0,0,
- 0,0,8,8,8,8,8,8,8,8,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0};
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,1,1,1,1,1,1,1,1,0,0,
+  0,0,2,2,2,2,2,2,2,2,0,0,
+  0,0,3,3,3,3,3,3,3,3,0,0,
+  0,0,4,4,4,4,4,4,4,4,0,0,
+  0,0,5,5,5,5,5,5,5,5,0,0,
+  0,0,6,6,6,6,6,6,6,6,0,0,
+  0,0,7,7,7,7,7,7,7,7,0,0,
+  0,0,8,8,8,8,8,8,8,8,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
 
 const int diagl[144] =
-{0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0, 1, 2, 3, 4, 5, 6, 7, 8,0,0,
- 0,0, 9, 1, 2, 3, 4, 5, 6, 7,0,0,
- 0,0,10, 9, 1, 2, 3, 4, 5, 6,0,0,
- 0,0,11,10, 9, 1, 2, 3, 4, 5,0,0,
- 0,0,12,11,10, 9, 1, 2, 3, 4,0,0,
- 0,0,13,12,11,10, 9, 1, 2, 3,0,0,
- 0,0,14,13,12,11,10, 9, 1, 2,0,0,
- 0,0,15,14,13,12,11,10, 9, 1,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0, 1, 2, 3, 4, 5, 6, 7, 8,0,0,
+  0,0, 9, 1, 2, 3, 4, 5, 6, 7,0,0,
+  0,0,10, 9, 1, 2, 3, 4, 5, 6,0,0,
+  0,0,11,10, 9, 1, 2, 3, 4, 5,0,0,
+  0,0,12,11,10, 9, 1, 2, 3, 4,0,0,
+  0,0,13,12,11,10, 9, 1, 2, 3,0,0,
+  0,0,14,13,12,11,10, 9, 1, 2,0,0,
+  0,0,15,14,13,12,11,10, 9, 1,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
 };
 
 const int diagr[144] =
-{0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,15,14,13,12,11,10,9,1,0,0,
- 0,0,14,13,12,11,10,9,1,2,0,0,
- 0,0,13,12,11,10,9,1,2,3,0,0,
- 0,0,12,11,10,9,1,2,3,4,0,0,
- 0,0,11,10,9,1,2,3,4,5,0,0,
- 0,0,10,9,1,2,3,4,5,6,0,0,
- 0,0,9,1,2,3,4,5,6,7,0,0,
- 0,0,1,2,3,4,5,6,7,8,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,15,14,13,12,11,10,9,1,0,0,
+  0,0,14,13,12,11,10,9,1,2,0,0,
+  0,0,13,12,11,10,9,1,2,3,0,0,
+  0,0,12,11,10,9,1,2,3,4,0,0,
+  0,0,11,10,9,1,2,3,4,5,0,0,
+  0,0,10,9,1,2,3,4,5,6,0,0,
+  0,0,9,1,2,3,4,5,6,7,0,0,
+  0,0,1,2,3,4,5,6,7,8,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
+};
+
+const int sqcolor[144] =
+{
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,1,0,1,0,1,0,1,0,0,0,
+  0,0,0,1,0,1,0,1,0,1,0,0,
+  0,0,1,0,1,0,1,0,1,0,0,0,
+  0,0,0,1,0,1,0,1,0,1,0,0,
+  0,0,1,0,1,0,1,0,1,0,0,0,
+  0,0,0,1,0,1,0,1,0,1,0,0,
+  0,0,1,0,1,0,1,0,1,0,0,0,
+  0,0,0,1,0,1,0,1,0,1,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0
 };
 
 /* these tables will be used for positional bonuses: */
@@ -386,51 +408,51 @@ long int eval (void) {
    * in hand */
   if (cfg_devscale)
     {
-	  /* computer plays black -> no white downscaling */
-	if (white_to_move != comp_color)
+      /* computer plays black -> no white downscaling */
+      if (white_to_move != comp_color)
 	{
-	if (white_hand_eval <= 200 && (Variant != Bughouse))
-	{
-	/* 2 pawns or less */
-	wdev_dscale = 2;
-	}
-	else if (white_hand_eval >= 700)
-	{
-	/* queen + minor, three minors or more */
+	  if (white_hand_eval <= 200 && (Variant != Bughouse))
+	    {
+	      /* 2 pawns or less */
+	      wdev_dscale = 2;
+	    }
+	  else if (white_hand_eval >= 700)
+	    {
+	      /* queen + minor, three minors or more */
+	      wdev_dscale = 0;
+	    }
+	  else
+	    {
+	      wdev_dscale = 1;
+	    }
+	}     
+      else
 	wdev_dscale = 0;
-	}
-	else
+      
+      if (white_to_move == comp_color)
 	{
-	wdev_dscale = 1;
+	  if ((-black_hand_eval) <= 200 && (Variant != Bughouse))
+	    {
+	      /* 2 pawns or less */
+	      bdev_dscale = 2;
 	}
-	}
-	else
-	wdev_dscale = 0;
-	
-	if (white_to_move == comp_color)
-	{
-      if ((-black_hand_eval) <= 200 && (Variant != Bughouse))
-	{
-	  /* 2 pawns or less */
-	  bdev_dscale = 2;
-	}
-      else if ((-black_hand_eval) >= 700)
-	{
-	  /* queen + pawn, two minors + pawn */
-	  bdev_dscale = 0;
+	  else if ((-black_hand_eval) >= 700)
+	    {
+	      /* queen + pawn, two minors + pawn */
+	      bdev_dscale = 0;
+	    }
+	  else
+	    {
+	      bdev_dscale = 1;
+	    }
 	}
       else
-	{
-	  bdev_dscale = 1;
-	}
-	}
-	else
-		bdev_dscale = 0;
+	bdev_dscale = 0;
     }
   else
-  {
-    wdev_dscale = bdev_dscale = 0;
-  }
+    {
+      wdev_dscale = bdev_dscale = 0;
+    }
   
   /* loop through the board, adding material value, as well as positional
      bonuses for all pieces encountered: */
@@ -684,48 +706,48 @@ long int eval (void) {
  
   if (cfg_attackeval)
   {
-  badsquares = 0;
-  safety = 0;
-  
-  badsquares += Gis_attacked(wking_loc - 13, 0);
-  badsquares += Gis_attacked(wking_loc - 12, 0);
-  badsquares += Gis_attacked(wking_loc - 11, 0);
-  badsquares += Gis_attacked(wking_loc -  1, 0);
-  badsquares += Gis_attacked(wking_loc +  1, 0);
-  badsquares += Gis_attacked(wking_loc + 11, 0);
-  badsquares += Gis_attacked(wking_loc + 12, 0);
-  badsquares += Gis_attacked(wking_loc + 13, 0);
+    badsquares = 0;
+    safety = 0;
+    
+    badsquares += Gis_attacked(wking_loc - 13, 0);
+    badsquares += Gis_attacked(wking_loc - 12, 0);
+    badsquares += Gis_attacked(wking_loc - 11, 0);
+    badsquares += Gis_attacked(wking_loc -  1, 0);
+    badsquares += Gis_attacked(wking_loc +  1, 0);
+    badsquares += Gis_attacked(wking_loc + 11, 0);
+    badsquares += Gis_attacked(wking_loc + 12, 0);
+    badsquares += Gis_attacked(wking_loc + 13, 0);
+    
+    norm_black_hand_eval = ((-black_hand_eval) / 100);
+    if (norm_black_hand_eval > 14) norm_black_hand_eval = 14;
+    else if (norm_black_hand_eval < 0) norm_black_hand_eval = 0;
+    
+    safety -= ksafety_scaled[norm_black_hand_eval][badsquares];
+    
+    badsquares = 0;
 
-  norm_black_hand_eval = ((-black_hand_eval) / 100);
-  if (norm_black_hand_eval > 14) norm_black_hand_eval = 14;
-  else if (norm_black_hand_eval < 0) norm_black_hand_eval = 0;
-  
-  safety -= ksafety_scaled[norm_black_hand_eval][badsquares];
-
-  badsquares = 0;
-
-  badsquares += Gis_attacked(bking_loc - 13, 1);
-  badsquares += Gis_attacked(bking_loc - 12, 1);
-  badsquares += Gis_attacked(bking_loc - 11, 1);
-  badsquares += Gis_attacked(bking_loc -  1, 1);
-  badsquares += Gis_attacked(bking_loc +  1, 1);
-  badsquares += Gis_attacked(bking_loc + 11, 1);
-  badsquares += Gis_attacked(bking_loc + 12, 1);
-  badsquares += Gis_attacked(bking_loc + 13, 1);
-
-  norm_white_hand_eval = (white_hand_eval / 100);
-  if (norm_white_hand_eval > 14) norm_white_hand_eval = 14;
-  else if (norm_white_hand_eval < 0) norm_white_hand_eval = 0;
-  
-  safety += ksafety_scaled[norm_white_hand_eval][badsquares];
-  
-  score += safety;
+    badsquares += Gis_attacked(bking_loc - 13, 1);
+    badsquares += Gis_attacked(bking_loc - 12, 1);
+    badsquares += Gis_attacked(bking_loc - 11, 1);
+    badsquares += Gis_attacked(bking_loc -  1, 1);
+    badsquares += Gis_attacked(bking_loc +  1, 1);
+    badsquares += Gis_attacked(bking_loc + 11, 1);
+    badsquares += Gis_attacked(bking_loc + 12, 1);
+    badsquares += Gis_attacked(bking_loc + 13, 1);
+    
+    norm_white_hand_eval = (white_hand_eval / 100);
+    if (norm_white_hand_eval > 14) norm_white_hand_eval = 14;
+    else if (norm_white_hand_eval < 0) norm_white_hand_eval = 0;
+    
+    safety += ksafety_scaled[norm_white_hand_eval][badsquares];
+    
+    score += safety;
   }
   
   storeECache(score);
-
+  
   score += (white_hand_eval + black_hand_eval);
-
+  
   /* adjust for color: */
   if (white_to_move == 1) {
     return score;
@@ -733,6 +755,6 @@ long int eval (void) {
   else {
     return -score;
   }
-
+  
 }
 

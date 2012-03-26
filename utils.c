@@ -93,13 +93,13 @@ long int allocate_time (void) {
         	move_speed -= 5;
     }    
     else if (Variant == Suicide)
-	{
-		move_speed -= 10;
-	}
-	else if (Variant == Losers)
-	{
-		move_speed -= 5;
-	}
+    {
+	move_speed -= 10;
+    }
+    else if (Variant == Losers)
+    {
+	move_speed -= 5;
+    }
 
     /* allocate our base time: */
     allocated_time = time_left/move_speed;
@@ -122,8 +122,8 @@ long int allocate_time (void) {
     
     /* if we've got extra time, use some of it: */
     if (time_cushion) {
-      allocated_time += time_cushion*2.0/3.0;
-      time_cushion -= time_cushion*2.0/3.0;
+      allocated_time += time_cushion*2.1/3.0;
+      time_cushion -= time_cushion*2.1/3.0;
     }
   }
 
