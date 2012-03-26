@@ -1,0 +1,6 @@
+sjeng
+stamp-h
+*.o
+*Makefile
+config.*
+*.lrn
