@@ -22,5 +22,4 @@
 #include "sjeng.c"
 #include "utils.c"
 #include "proof.c"
-#include "probe.c"
 #include "leval.c"

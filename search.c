@@ -539,13 +539,7 @@ long int search (int alpha, int beta, int depth, int is_null) {
   
   if ((path[ply-1].captured != npiece || ply == 2))
   {
-    if (piece_count <= EGTBPieces && (Variant == Normal))
-    {
-      egscore = probe_egtb();
-      if (egscore != KINGCAP)
-	return egscore;
-    }
-    else if (piece_count <= 3 && (Variant == Suicide) && SEGTB)
+    if (piece_count <= 3 && (Variant == Suicide) && SEGTB)
     {
       EGTBProbes++;
       

@@ -72,6 +72,7 @@ int is_promoted[62];
 int NTries, NCuts, TExt;
 unsigned long PVS, FULL, PVSF;
 unsigned long ext_check;
+int EGTBHits, EGTBProbes;
 
 bool is_pondering, allow_pondering, is_analyzing;
 
@@ -183,8 +184,6 @@ int main (int argc, char *argv[]) {
   clear_tt();
   reset_ecache();
   
-  init_egtb();
-
   if (init_segtb())
     SEGTB = TRUE;
   else
