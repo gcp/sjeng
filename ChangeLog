@@ -1,3 +1,21 @@
+2000-10-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.4.2
+
+	* blob2.c: fix neval/seval/eval.c
+
+	* proof.c: (develop_node): handle suicide 'stalemates'
+
+	* seval.c: lower queen value
+	remove srev_rank to prevent blob2.c conflict
+
+	* search.c: (order_moves): lower queen value
+	(qsearch): do legality check anyway
+
+	* utils.c: (comp_to_coord): king promotions in suicide
+
+	* moves.c: (gen): fixes to promotions in suicide
+
 2000-10-20  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.4.1

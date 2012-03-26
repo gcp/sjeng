@@ -540,7 +540,22 @@ void develop_node (node_t * node)
     {
       node->expanded = FALSE;
       node->evaluated = TRUE;
-      node->value = STALEMATE;
+      if (Variant != Suicide)
+      {
+      	node->value = STALEMATE;
+      }
+      else
+      {
+	if (ToMove == root_to_move)
+	{
+	  node->value = TRUE;
+	}
+	else
+	{
+	  node->value = FALSE;
+	}
+      };
+      
     };
 
 //  if (pn2)

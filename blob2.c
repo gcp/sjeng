@@ -14,16 +14,8 @@
 #include "partner.c"
 #include "search.c"
 #include "seval.c"
+#include "neval.c"
 #include "sjeng.c"
 #include "ttable.c"
 #include "utils.c"
 #include "proof.c"
-
-
-
-
-
-
-
-
-

@@ -70,7 +70,7 @@ long int allocate_time (void) {
 	move_speed = 25.0;
     }
 
-    if (Variant == Suicide) move_speed -= 5;
+    if (Variant == Suicide) move_speed -= 10;
 
     /* check to see if we need to move REALLY fast: */
     /*    if (time_left <= 6000 && inc < 3)
@@ -300,7 +300,12 @@ void comp_to_coord (move_s move, char str[]) {
 	else if (prom == wbishop || prom == bbishop) {
 	  sprintf (str, "%c%d%c%db", f_file, f_rank, t_file, t_rank);
 	}
-	else {
+	else if (prom == wking || prom == bking) 
+	{
+	  sprintf (str, "%c%d%c%dk", f_file, f_rank, t_file, t_rank);
+	}
+	else
+	{
 	  sprintf (str, "%c%d%c%dq", f_file, f_rank, t_file, t_rank);
 	}
       }

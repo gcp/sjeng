@@ -254,7 +254,10 @@ int main (int argc, char *argv[]) {
 	    /* check to see if we mate our opponent with our current move: */
 	    if (!result) {
 	      if (xb_mode) {
-		printf ("move %s\n", output);
+
+		/* safety in place here */
+		if (comp_move.from != dummy.from || comp_move.target != dummy.target)
+		    printf ("move %s\n", output);
 
 		if (Variant == Bughouse)
 		  {
@@ -267,7 +270,8 @@ int main (int argc, char *argv[]) {
 	    }
 	    else {
 	      if (xb_mode) {
-		printf ("move %s\n", output);
+		if (comp_move.from != dummy.from || comp_move.target != dummy.target)
+		    printf ("move %s\n", output);
 	      }
 	      else {
 		printf ("\n%s\n", output);
@@ -390,7 +394,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-10-19)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2000-10-22)\n");
 	  }
 
 	if (!is_analyzing)

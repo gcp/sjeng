@@ -147,7 +147,7 @@ restart:
 	     push_pawn (from, from+12, FALSE);
 
 	     /* pawn moving up two squares on its first move: */
-	     if (rank(from) == 2 && board[from+24] == npiece && !captures)
+	     if (rank(from) == 2 && board[from+24] == npiece)
 	       push_pawn_simple (from, from+24);
 	   }
 	 }
@@ -255,11 +255,11 @@ restart:
 	  }
 	  else if (!captures) {
 	    push_pawn (from, from-12, FALSE);
-	  }
+	  
 	  /* pawn moving up two squares on its first move: */
-	  if (rank(from) == 7 && board[from-24] == npiece
-	      && !captures)
+	  if (rank(from) == 7 && board[from-24] == npiece)
 	    push_pawn_simple (from, from-24);
+	  }
 	};
 	/* pawn capturing diagonally: */
 	if ((board[from-13]&1) == 1 && board[from-13] != npiece)

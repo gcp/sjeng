@@ -16,8 +16,8 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    File: eval.c                                        
-    Purpose: functions for evaluating positions (standard chess)
+    File: seval.c                                        
+    Purpose: functions for evaluating positions (suicide chess)
 
 */
 
@@ -29,19 +29,15 @@ static int scentral[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,-20,-10,-10,-10,-10,-10,-10,-20,0,0,
-0,0,-10,0,0,3,3,0,0,-10,0,0,
-0,0,-10,0,5,5,5,5,0,-10,0,0,
-0,0,-10,0,5,10,10,5,0,-10,0,0,
-0,0,-10,0,5,10,10,5,0,-10,0,0,
-0,0,-10,0,5,5,5,5,0,-10,0,0,
-0,0,-10,0,0,3,3,0,0,-10,0,0,
+0,0,-10,0,3,5,5,3,0,-10,0,0,
+0,0,-10,0,15,15,15,15,0,-10,0,0,
+0,0,-10,0,15,30,30,15,0,-10,0,0,
+0,0,-10,0,15,30,30,15,0,-10,0,0,
+0,0,-10,0,15,15,15,15,0,-10,0,0,
+0,0,-10,0,3,5,5,3,0,-10,0,0,
 0,0,-20,-10,-10,-10,-10,-10,-10,-20,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
-
-/* utility array to reverse rank: */
-static int srev_rank[9] = {
-0,8,7,6,5,4,3,2,1};
 
 long int suicide_eval (void) {
 

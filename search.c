@@ -51,7 +51,7 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
     0,100,100,310,310,50000,50000,500,500,900,900,325,325,0};
 
   int scap_values[14] = {
-    0,50,50,250,250,1000,1000,200,200,400,400,230,230,0};    
+    0,50,50,250,250,1000,1000,200,200,250,250,230,230,0};    
 
   int promoted, captured;
   int i, from, target;
@@ -254,7 +254,7 @@ long int qsearch (int alpha, int beta, int depth) {
 
   /* before we do anything, see if we're out of time: */
   if (!(nodes & 4095)) {
-    if ((interrupt() && !go_fast) || (rdifftime (rtime (), start_time) >= time_for_move)) {
+    if (((interrupt() && !go_fast) || (rdifftime (rtime (), start_time) >= time_for_move)) && (i_depth > 1)) {
       time_exit = TRUE;
       return 0;
     }
@@ -296,7 +296,7 @@ long int qsearch (int alpha, int beta, int depth) {
     legal_move = FALSE;
 
     /* go deeper if it's a legal move: */
-//    if (check_legal (&moves[0], i)) {
+    if (check_legal (&moves[0], i)) {
       /* check whether it is a futile capture : 
 	 captured piece wont bring us back near alpha */
       /* warning : promotions should be accounted for */
@@ -320,7 +320,7 @@ long int qsearch (int alpha, int beta, int depth) {
 	  };
 	}
       else DeltaCuts++;
-   // }
+    }
 
     unmake (&moves[0], i);
     ply--;
@@ -410,7 +410,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   
   /* before we do anything, see if we're out of time: */
   if (!(nodes & 4095)) {
-    if ((interrupt() && !go_fast) || (rdifftime (rtime (), start_time) >= time_for_move)) {
+    if (((interrupt() && !go_fast) || (rdifftime (rtime (), start_time) >= time_for_move)) && (i_depth > 1)) {
       time_exit = TRUE;
       return 0;
     }
@@ -1129,7 +1129,8 @@ move_s think (void) {
   bestmovenum = -1;
 
   /* Don't do anything if the queue isn't clean */
-  if (interrupt()) return dummy;
+  /* PGC: only safe if we're not playing...else partner tells screw us up */
+  if (interrupt() && (is_analyzing || is_pondering)) return dummy;
   
   ep_temp = ep_square;
  
@@ -1334,7 +1335,7 @@ move_s think (void) {
 	 
 	 ep_square = ep_temp;
 	 
-	 if (interrupt()) 
+	 if (interrupt() && (i_depth > 1)) 
 	   {
 	     if (is_pondering)
 	       return;

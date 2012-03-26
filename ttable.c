@@ -34,7 +34,7 @@ unsigned long TTProbes;
 unsigned long TTHits;
 unsigned long TTStores;
 
-#define TTSIZE 250000
+#define TTSIZE 500000
 
 typedef struct 
 {
