@@ -1861,6 +1861,8 @@ restart:
 	    break;
 	  }
 	}
+
+        k = 0;
 	for (j = 0; j < num_moves; j++)
 	{
 	    if (rootlosers[j]) k++;  

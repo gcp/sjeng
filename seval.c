@@ -298,7 +298,7 @@ long int suicide_mid_eval (void) {
   int isolated, backwards, i, a, j;
   long int score = 0;
   int in_cache;
-  int wb = 0, bb = 0, wbc, bbc;
+  int wb = 0, bb = 0, wbc = 0, bbc = 0;
   int wk = 0, bk = 0, wr = 0, br = 0;
   int wn = 0, bn = 0, wp = 0, bp = 0;
   
