@@ -4,3 +4,4 @@ sjeng_SOURCES = attacks.c crazy.c epd.c learn.c partner.c seval.c \
                 sjeng.c utils.c \
 		protos.h extvars.h sjeng.h
 EXTRA_DIST = TODO NEWS ChangeLog COPYING BUGS
+SUBDIRS = books tests

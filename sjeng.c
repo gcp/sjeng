@@ -363,7 +363,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-4-12)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2000-4-16)\n");
 	  }
 
 	if (!is_analyzing)

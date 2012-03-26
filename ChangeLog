@@ -1,3 +1,19 @@
+2000-04-16  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.1
+
+	* sjeng.c: (main) updated version output
+
+	* configure.in: updated AC_OUTPUT
+	AM_INIT_AUTOMAKE: updated version number
+
+	* tests/Makefile.am: file added
+
+	* books/Makefile.am: file added
+
+	* Makefile.am: added SUBDIRS
+	
+
 2000-04-12  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.0
