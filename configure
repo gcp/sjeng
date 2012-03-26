@@ -2612,7 +2612,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=Sjeng-Free
- VERSION=11.2
+ VERSION=11.3
 
 
 cat >>confdefs.h <<_ACEOF

@@ -1962,6 +1962,7 @@ void unmake (move_s moves[], int i) {
        /* remove from piece array, unset piece-square pointer */
 
        pieces[squares[target]] = 0;
+       assert(is_promoted[squares[target]] == 0);
        
        /* unset square->piece pointer */
        squares[target] = 0;
@@ -2132,6 +2133,8 @@ void unmake (move_s moves[], int i) {
 	  moved[from]--;
 	  white_to_move ^= 1;
 
+          is_promoted[squares[from]] = 0;
+
 	  Hash(wpawn, from);
 	  Hash(promoted, target);
 
@@ -2147,6 +2150,8 @@ void unmake (move_s moves[], int i) {
 	moved[target]--;
 	moved[from]--;
 	white_to_move ^= 1;
+
+        is_promoted[squares[from]] = 0;
 
 	Hash(bpawn, from);
 	Hash(promoted, target);
