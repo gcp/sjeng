@@ -84,7 +84,7 @@ void alloc_ecache(void)
     exit(EXIT_FAILURE);
   }
   
-  printf("Allocated %lu eval cache entries, totalling %lu bytes.\n",
+  printf("Allocated %u eval cache entries, totalling %lu bytes.\n",
           ECacheSize, sizeof(ECacheType)*ECacheSize);
   return;
 }

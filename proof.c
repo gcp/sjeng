@@ -44,7 +44,7 @@
 int nodecount;
 int nodecount2;
 int pn2;
-long frees;
+int frees;
 int iters;
 int forwards;
 int maxply;

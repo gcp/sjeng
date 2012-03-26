@@ -524,7 +524,7 @@ move_s choose_binary_book_move (void)
 			
 	      comp_to_coord(moves[i], output);
 	      
-	      printf("Move %s: %ld times played, %d learned\n", output,
+	      printf("Move %s: %ld times played, %ld learned\n", output,
 		     ps->played, ps->score);
 	      
 	      if ((ps->played + ps->score) >=  PLAYTHRESHOLD)
