@@ -10,6 +10,7 @@ TODO
 16. Remove has_castled dependencies
 17. If partner tells +++ override alpha-beta with a special check
 20. Slit up movegen to do captures and normal moves seperately
+21. Scale kingsafety by pieces in hand
 
 MAYBE
 

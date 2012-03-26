@@ -1,3 +1,12 @@
+Sjeng 7.4 (2000 WCCC Version)
+
+Support for suicide
+Faster movegenerator
+Faster search
+Supports analysis mode for zh games
+2-level transposition table
+Full proof-number and proof-number^2 implementation
+
 Sjeng 7.3
 
 Faster move generation/Cleaner code

@@ -30,6 +30,8 @@ int std_material[] = { 0, 100, -100, 310, -310, 4000, -4000, 300, -300, 900, -90
 
 int zh_material[] = { 0, 100, -100, 210, -210, 4000, -4000, 250, -250, 450, -450, 230, -230, 0 }; 
 
+int suicide_material[] = { 0, 50, -50, 250, -250, 1000, -1000, 200, -200, 400, -400, 230, -230, 0 }; 
+
 int material[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 #define max(x,y) (((x)>(y))?(x):(y))
@@ -221,10 +223,6 @@ const int white_rook[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
-/* utility array to reverse rank: */
-int rev_rank[9] = {
-0,8,7,6,5,4,3,2,1};
-
 /* king safety tropisms */
 /* tropism values of 0 and 8 are bogus, 
    and should never happen in the actual eval */
@@ -285,7 +283,11 @@ long int eval (void) {
 
   if (Variant == Normal)
     {
-      return seval();
+      return std_eval();
+    }
+  else if (Variant == Suicide)
+    {
+      return suicide_eval();
     }
   
   in_cache = 0;
@@ -466,3 +468,8 @@ long int eval (void) {
   }
 
 }
+
+
+
+
+

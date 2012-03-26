@@ -214,7 +214,9 @@ void run_epd_testsuite(void)
   FILE *testsuite;
   char readbuff[2000];
   char testname[STR_BUFF];
-  int elapsed, nps;
+  char tempbuff[2000];
+  float elapsed; 
+  int nps;
   long thinktime;
 	move_s comp_move;
   int tested, found;
@@ -228,7 +230,7 @@ void run_epd_testsuite(void)
   rinput(testname, STR_BUFF, stdin);
   printf("\nTime per move (s): ");
   rinput(readbuff, STR_BUFF, stdin);
-	thinktime = atol(readbuff);
+  thinktime = atol(readbuff);
   printf("\n");
 
   thinktime *= 100;
@@ -240,18 +242,34 @@ void run_epd_testsuite(void)
       tested++;
 			
       setup_epd_line(readbuff);
+
+      root_to_move = ToMove;
       
       clear_tt();
       initialize_hash();
       
       display_board(stdout, 1); 
+ 
+     
+      //pn_time = thinktime;
+      //cpu_start = clock();
+      //proofnumbersearch();
+      //cpu_end = clock();
+     // rdelay(2);
+     
+     elapsed = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+     printf("Time: %f\n", elapsed);
+      
+     if (interrupt()) rinput(tempbuff, STR_BUFF, stdin);
       
       fixed_time = thinktime;
+ 
       
       cpu_start = clock();
       comp_move = think();
       cpu_end = clock();
       
+
       printf ("\nNodes: %ld (%0.2f%% qnodes)\n", nodes,
 	      (float) ((float) qnodes / (float) nodes * 100.0));
       
@@ -295,6 +313,7 @@ void run_epd_testsuite(void)
 	}
       
       printf("Solved: %d/%d\n", found, tested);
+      
     };
   printf("\n");
 };

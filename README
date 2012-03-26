@@ -1,19 +1,26 @@
 What is Sjeng ?
 ---------------
 
-Sjeng is a chessprogram that plays the crazyhouse and bughouse
-variants. In addition to that, it can also play normal chess
-and is fully compatible with the standard XBoard/WinBoard 
-protocol.
+Sjeng is a chessprogram that plays many variants. 
+In addition to that, it can also play normal chess
+quite well and is fully compatible with the standard 
+XBoard/WinBoard protocol.
 
 Technically, Sjeng is a highly advanced alpha-beta searcher, 
 using modern techniques like history and killer moves, 
-transposition tables, internal interative deepening, MVA/LVV
+transposition tables, internal interative deepening, LVA/MVV
 move ordering, and search enhancements like selective
 extensions, Dynamic Principal Variation Search, Adaptive
 nullmove pruning, Extended Futility Pruning and Limited 
 Razoring. Sjeng can use an opening book and learns from
 the games it plays.
+
+In it's suicide mode, Sjeng use proof-number searches
+to quickly find forced wins. Sjeng plays at the same
+level that the best humans are capable of.
+
+On 14th of October 2000, Sjeng won it's first title
+by becoming the World Computer Crazyhouse Chess Champion.
 
 
 How do I get it to work ?
@@ -29,15 +36,14 @@ How do I get it to work ?
 
     ./configure
     make
-    (su to root)
+    (su to root if needed)
     make install
  
     If you want to squeeze the last bit of
     performance out of Sjeng, try this:
 
     ./configure
-    cat *.c > blob.c
-    gcc -O9 -mpentiumpro -funroll-loops -s -o sjeng blob.c
+    gcc -O9 -mpentiumpro -funroll-loops -s -o sjeng blob2.c
 
     If you do not have an x86 machine, or an older version
     of gcc that doesn't recognize the '-mpentiumpro' flag,
@@ -52,13 +58,15 @@ How do I get it to work ?
 
     I have succesfully compiled older versions of Sjeng with
     Microsoft Visual C++. Newer versions should work too,
-    although they are not as well tested. 
+    although they are not as well tested. You need to find
+    a Windows port of the GDBM library. There are several
+    (free) ones available on the internet.
 
     You will have to create a config.h file which contains
     
     #define HAVE_SYS_TIMEB_H
     #define HAVE_FTIME
-    #define VERSION "7.3"
+    #define VERSION "7.4"
 
     You may have to define _WIN32 also.
 
@@ -71,9 +79,7 @@ How do I get it to work ?
  -----------------
 
  Copy the files zh.opn and normal.opn from the books directory
- to the directory from where you will be running Sjeng. Next,
- copy the zh.opn file to bug.opn. It is not yet recommended to
- use the bug.opn file from the books directory.
+ to the directory from where you will be running Sjeng. 
 
  It is important that you keep starting Sjeng from the same 
  directory, because otherwise it will not be able to find its 
@@ -100,13 +106,17 @@ How do I get it to work ?
  which will significantly speed up the bookbuilding process,
  as well as getting rid of any psuedo-SAN.
 
+ A PGN database of some high-quality crazyhouse games is
+ available at 
+ ftp://sjeng.sourceforge.net/pub/sjeng/zhgames.pgn
+
  The binary books (.bin files) are NOT exchangable between
  operating systems. You cannot mix a Windows-built book with 
  a Unix-running Sjeng.
 
  The new .bin files can be used alongside the old .opn files.
  Sjeng will first look for an opening in the .opn files, and
- if nothing is found, it will look in the .bin files.
+ if nothing is found, it will look in the .bin files. 
 
  If the PGN database you used to generate the new book is large
  enough (more than a thousand positions) it is probably better
@@ -147,14 +157,17 @@ How do I get it to work ?
 Tuning Sjeng
 ------------
 
-In the file ttable.c, you can change TTSIZE from 500000
+In the file ttable.c, you can change TTSIZE from 250000
 to a higher number. This will improve performance, as 
 long as your system does not have to swap to disk because
 of it.
 
-If you use Sjeng to play bughouse, you can do the same
-with ECACHESIZE in ecache.c. This is not so imporant
-as TTSIZE is.
+You can do the same with ECACHESIZE in ecache.c. This 
+is not so imporant as TTSIZE is.
+
+If you use Sjeng to play suicide, also look at MAXSEARCH
+in proof.c. You may have to increase this if your machine
+is very fast.
 
 Benchmarking
 ------------
@@ -190,7 +203,8 @@ forums, access the mailinglists, submit bugs etc...
 
 Visiting it is recommended, especially if you are
 interested in the development of Sjeng. If you are
-interested in improving Sjeng, send me a mail at
+in need of info about Sjeng's internal workings, 
+send me a mail at
 
 gcp@users.sourceforge.net
 
@@ -245,6 +259,15 @@ What is crazyhouse ?
 
 Crazyhouse is similar to bughouse, but is played
 with only 2 players, on 1 board.
+
+
+What is suicide ?
+-----------------
+
+Suicide is a form of chess where the goal is to
+lose all your pieces. Your king acts like a normal
+piece and can be captured. If you can capture,
+you must. 
 
 
 Where can I play this game ?

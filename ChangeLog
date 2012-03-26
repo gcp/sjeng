@@ -1,3 +1,50 @@
+2000-10-20  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.4.1
+
+	* proof.c: (proofnumbersearch): only kibitz in xb_mode
+	Use SAFETY margin for node buffer allocation
+
+	* sjeng.c: (main): ask for time with 'prove'
+
+	* README: MVV/LVA typo
+
+	* moves.c: (push_pawn): add king promotions in suicide
+
+	* Released 7.4
+
+	* learn.c: avoid code duplication via pointers
+
+	* blob2.c: added
+
+	* proof.c: added
+
+2000-10-19  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* utils.c: (verify_coord): use strncasecmp
+
+	* ttable.c: use 2-level tables
+
+	* moves.c: (gen): break on king-capture
+
+	* search.c: (qsearch): do not check for legality but
+	check for kingcapture instead
+
+	(ALL) imported suicide support from experimental versions
+
+2000-07-23  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* search.c: (search): do not apply limited razoring 
+	if we are in check
+
+2000-07-23  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* moves.c: (gen): optimized pawn-movegeneration
+	(gen): split up movegen in drop and nondrop part
+	(push_slide): optimized with macro
+	(ALL) replaced instances of %2 with &1
+	(ALL) removed moves[] parameters
+
 2000-07-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.3

@@ -80,6 +80,7 @@ extern int Material;
 extern int material[17];
 extern int zh_material[17];
 extern int std_material[17];
+extern int suicide_material[17];
 
 extern int NTries, NCuts, TExt;
 
@@ -122,9 +123,16 @@ extern int phase;
 
 FILE *lrn_standard;
 FILE *lrn_zh;
+FILE *lrn_suicide;
 extern int bestmovenum;
 
 extern int ugly_ep_hack;
 
+extern int root_to_move;
 
+extern int kingcap;
 
+extern int pn_time;
+extern move_s pn_move;
+extern move_s pn_saver;
+extern bool kibitzed;

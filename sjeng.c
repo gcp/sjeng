@@ -42,6 +42,8 @@ unsigned long history_h[144][144];
 bool xb_mode, captures, searching_pv, post, time_exit, time_failure;
 
 int phase;
+int root_to_move;
+
 
 move_s pv[PV_BUFF][PV_BUFF], killer1[PV_BUFF], killer2[PV_BUFF],
  killer3[PV_BUFF];
@@ -68,10 +70,12 @@ long fixed_time;
 
 FILE *lrn_standard;
 FILE *lrn_zh;
+FILE *lrn_suicide;
 
 int main (int argc, char *argv[]) {
 
   char input[STR_BUFF], *p, output[STR_BUFF];
+  char readbuff[STR_BUFF];
   move_s move, comp_move;
   int depth = 4;
   bool force_mode, show_board;
@@ -108,7 +112,6 @@ int main (int argc, char *argv[]) {
 	  lrn_standard = fopen ("standard.lrn", "rb+");
 	}
     }
-
   if ((lrn_zh = fopen ("bug.lrn", "rb+")) == NULL)
     {
       printf("No crazyhouse learn file.\n");
@@ -121,6 +124,20 @@ int main (int argc, char *argv[]) {
 	{
 	  fclose(lrn_zh);
 	  lrn_zh = fopen ("bug.lrn", "rb+");
+	}
+    }
+  if ((lrn_suicide = fopen ("suicide.lrn", "rb+")) == NULL)
+    {
+      printf("No suicide learn file.\n");
+
+      if ((lrn_suicide = fopen ("suicide.lrn", "wb+")) == NULL)
+	{
+	  printf("Error creating suicide learn file.\n");
+	}
+      else
+	{
+	  fclose(lrn_suicide);
+	  lrn_suicide = fopen ("suicide.lrn", "rb+");
 	}
     }
 
@@ -148,6 +165,8 @@ int main (int argc, char *argv[]) {
   go_fast = FALSE;
   fixed_time = FALSE;
   phase = Opening;
+  root_to_move = WHITE;
+  kibitzed = FALSE;
 
   move_number = 0;
   memset(game_history, 0, sizeof(game_history));
@@ -181,6 +200,8 @@ int main (int argc, char *argv[]) {
 	    ep_squares[move_number++] = ep_square;
 	    make (&comp_move, 0);
 	    
+	    root_to_move ^= 1;
+
 	    reset_piece_square ();
 	    
 	    if (book_ply < 40) {
@@ -309,6 +330,8 @@ int main (int argc, char *argv[]) {
 	make (&move, 0);
 	reset_piece_square ();
 	
+	root_to_move ^= 1;
+	
 	if (book_ply < 40) {
 	  if (!book_ply) {
 	    strcpy(opening_history, input);
@@ -350,6 +373,7 @@ int main (int argc, char *argv[]) {
 	    {
 	      fclose(lrn_standard);
 	      fclose(lrn_zh);
+	      fclose(lrn_suicide);
 	      exit (EXIT_SUCCESS);
 	    }
 	}
@@ -366,7 +390,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-7-22)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2000-10-19)\n");
 	  }
 
 	if (!is_analyzing)
@@ -374,9 +398,9 @@ int main (int argc, char *argv[]) {
 	  memcpy(material, std_material, sizeof(std_material));
 	  Variant = Normal;
 
-	  /*memcpy(material, zh_material, sizeof(zh_material));
-	    Variant = Crazyhouse;*/
-
+	  //memcpy(material, zh_material, sizeof(zh_material));
+	  //Variant = Crazyhouse;
+	    
 	  init_game ();
 	  initialize_hash();
 	  clear_tt();
@@ -388,6 +412,9 @@ int main (int argc, char *argv[]) {
 	  go_fast = FALSE;
 	  piecedead = FALSE;
 	  partnerdead = FALSE;
+	  kibitzed = FALSE;
+
+	  root_to_move = WHITE;
   
 	  comp_color = 0;
 	  move_number = 0;
@@ -453,10 +480,12 @@ int main (int argc, char *argv[]) {
       }
       else if (!strcmp (input, "white")) {
 	white_to_move = 1;
+	root_to_move = WHITE;
 	comp_color = 0;
       }
       else if (!strcmp (input, "black")) {
 	white_to_move = 0;
+	root_to_move = BLACK;
 	comp_color = 1;
       }
       else if (!strcmp (input, "force")) {
@@ -504,6 +533,12 @@ int main (int argc, char *argv[]) {
 	    memcpy(material, zh_material, sizeof(zh_material));
 	    init_book();
 	  }
+	else if (strstr(input, "suicide"))
+	  {
+	    Variant = Suicide;
+	    memcpy(material, suicide_material, sizeof(suicide_material));
+	    init_book();
+	  }
 	
 	initialize_hash();
 	clear_tt();
@@ -523,6 +558,7 @@ int main (int argc, char *argv[]) {
 	    unmake(&game_history[--move_number], 0);
 	    ep_square = ep_squares[move_number];
 	    reset_piece_square();
+	    root_to_move ^= 1;
 	  }
       }
       else if (!strncmp (input, "remove", 5)) {
@@ -583,6 +619,14 @@ int main (int argc, char *argv[]) {
       else if (!strncmp (input, "speed",  5)) {
 	speed_test();
       }
+      else if (!strncmp (input, "prove", 5)) {
+	printf("\nMax time to search (s): ");
+	start_time = rtime();
+	rinput(readbuff, STR_BUFF, stdin);
+	pn_time = atol(readbuff) * 100;
+	printf("\n");
+	proofnumbersearch();      
+       }
       else if (!strncmp (input, "warranty", 8)) {
 	  printf("\n  BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY\n"
 		 "FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN\n"
@@ -637,7 +681,8 @@ int main (int argc, char *argv[]) {
 	printf ("test:         run an EPD testsuite\n");
 	printf ("speed:        test movegen and evaluation speed\n");
 	printf ("warranty:     show warranty details\n");
-    printf ("distribution: show distribution details\n");
+	printf ("distribution: show distribution details\n");
+	printf( "proof:        try to prove or disprove the current pos\n");
 	printf ("\n%s\n\n", divider);
       }
       else if (!xb_mode) {

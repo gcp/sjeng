@@ -49,7 +49,7 @@ long int allocate_time (void) {
      in centi-seconds (calculate everything in float for more accuracy as
      we go, and return the result as a long int) */
 
-  float allocated_time = 0.0, move_speed = 30.0;
+  float allocated_time = 0.0, move_speed = 20.0;
 
   /* sudden death time allocation: */
   if (!moves_to_tc) {
@@ -63,12 +63,14 @@ long int allocate_time (void) {
     /* check to see if we're behind on time and need to speed up: */
     if ((min_per_game < 3 && !inc) || time_left < min_per_game*6000*4.0/5.0) {
       if ((opp_time-time_left) > (opp_time/5.0) && xb_mode)
-	move_speed = 50.0;
-      else if ((opp_time-time_left) > (opp_time/10.0) && xb_mode)
 	move_speed = 40.0;
+      else if ((opp_time-time_left) > (opp_time/10.0) && xb_mode)
+	move_speed = 30.0;
       else if ((opp_time-time_left) > (opp_time/20.0) && xb_mode)
-	move_speed = 35.0;
+	move_speed = 25.0;
     }
+
+    if (Variant == Suicide) move_speed -= 5;
 
     /* check to see if we need to move REALLY fast: */
     /*    if (time_left <= 6000 && inc < 3)
@@ -855,7 +857,7 @@ bool verify_coord (char input[], move_s *move) {
   /* compare user input to the generated moves: */
   for (i = 0; i < num_moves; i++) {
     comp_to_coord (moves[i], comp_move);
-    if (!strcmp (input, comp_move)) {
+    if (!strcasecmp (input, comp_move)) {
       make (&moves[0], i);
       if (check_legal (&moves[0], i)) {
 	legal = TRUE;
@@ -1118,7 +1120,7 @@ void speed_test(void)
 
   cpu_start = clock ();
 
-  for (i = 0; i < 1000000; i++)
+  for (i = 0; i < 500000; i++)
     {
       gen (&moves[0]);
     }
@@ -1126,7 +1128,7 @@ void speed_test(void)
   cpu_end = clock ();
   et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
   
-  printf("Movegen speed: %d/s\n", (int)(1000000.0/et));
+  printf("Movegen speed: %d/s\n", (int)(500000.0/et));
   
   j = 0;
   
@@ -1154,7 +1156,7 @@ void speed_test(void)
     {
       eval();
       /* invalidate the ecache */
-      hash = (hash++) % ULONG_MAX; 
+      hash = (++hash) % ULONG_MAX; 
     }
   
   cpu_end = clock ();

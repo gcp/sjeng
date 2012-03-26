@@ -41,6 +41,7 @@ void make (move_s moves[], int i);
 void order_moves (move_s moves[], long int move_ordering[], int num_moves, int best);
 long int mid_eval (void);
 long int opn_eval (void);
+long int suicide_mid_eval(void);
 void check_phase(void);
 void perft (int depth);
 void speed_test(void);
@@ -50,16 +51,17 @@ void post_fl_thinking (long int score, move_s *failmove);
 void post_fh_thinking (long int score, move_s *failmove);
 void post_fail_thinking(long int score, move_s *failmove);
 void print_move (move_s moves[], int m, FILE *stream);
-void push_king (move_s moves[], int from, int target, 
+void push_king (int from, int target, 
 		int castle_type);
-void push_pawn (move_s moves[], int from, int target,
+void push_pawn (int from, int target,
 	bool is_ep); 
-void push_knight (move_s moves[], int from, int target);
+void push_pawn_simple (int from, int target);
+void push_knighT (int from, int target);
 
-void try_drop (move_s moves[], int ptype, int target);
+void try_drop (int ptype, int target);
 		
 
-void push_slide (move_s moves[], int from, int target);
+void push_slidE (int from, int target);
 long int qsearch (int alpha, int beta, int depth);
 void rdelay (int time_in_s);
 long int rdifftime (rtime_t end, rtime_t start);
@@ -133,5 +135,9 @@ void build_book(void);
 void comp_to_san (move_s move, char str[]);
 
 void clear_tt(void);
+void clear_dp_tt(void);
+
+move_s proofnumbercheck(move_s compmove);
+void proofnumbersearch(void);
 #endif
 

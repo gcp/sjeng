@@ -361,10 +361,12 @@ void build_book (void)
     }
   
   if (Variant == Normal)
+    binbook = gdbm_open("nbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
+  else if (Variant == Suicide)
     binbook = gdbm_open("sbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
   else
     binbook = gdbm_open("zbook.bin", 16384, GDBM_NEWDB | GDBM_FAST, 00664, NULL);
-  
+    
   
   if (binbook == NULL)
     {
@@ -419,9 +421,12 @@ move_s choose_binary_book_move (void)
   srand(time(0));
   
   if (Variant == Normal)
+    binbook = gdbm_open("nbook.bin", 16384, GDBM_READER, 0, NULL);
+  else if (Variant == Suicide)
     binbook = gdbm_open("sbook.bin", 16384, GDBM_READER, 0, NULL);
-  else
+  else 
     binbook = gdbm_open("zbook.bin", 16384, GDBM_READER, 0, NULL);
+    
   
   if (binbook == NULL)
     {

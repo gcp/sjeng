@@ -69,6 +69,11 @@ int init_book (void) {
        if ((f_book = fopen ("zh.opn", "r")) == NULL)
 	 return FALSE;
      }
+   else if (Variant == Suicide)
+     {
+       if ((f_book = fopen ("suicide.opn", "r")) == NULL)
+	 return FALSE;
+     }
    else
      {
        if ((f_book = fopen ("bug.opn", "r")) == NULL)

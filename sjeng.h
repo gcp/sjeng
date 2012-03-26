@@ -54,6 +54,7 @@
 #define Crazyhouse 0
 #define Bughouse 1
 #define Normal 2
+#define Suicide 3
 
 #define Opening      0
 #define Middlegame   1

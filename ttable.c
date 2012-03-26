@@ -34,7 +34,7 @@ unsigned long TTProbes;
 unsigned long TTHits;
 unsigned long TTStores;
 
-#define TTSIZE 1000000
+#define TTSIZE 250000
 
 typedef struct 
 {
@@ -48,11 +48,18 @@ typedef struct
 }
 TType;
 
-TType TTable[TTSIZE];
+TType DP_TTable[TTSIZE];
+TType AS_TTable[TTSIZE];
 
 void clear_tt(void)
 {
-  memset(TTable, 0, sizeof(TTable));
+  memset(DP_TTable, 0, sizeof(DP_TTable));
+  memset(AS_TTable, 0, sizeof(AS_TTable));
+};
+
+void clear_dp_tt(void)
+{
+  memset(DP_TTable, 0, sizeof(DP_TTable));
 };
 
 void initialize_zobrist(void)
@@ -85,7 +92,7 @@ void initialize_hash(void)
     }
 
   hold_hash = 0xC0FFEE00;
-  /* we need to set up hold_hash here, reply on ProcessHolding for now */
+  /* we need to set up hold_hash here, rely on ProcessHolding for now */
 
 }
 
@@ -97,27 +104,53 @@ void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
 
   index = hash % TTSIZE;
 
-  if (score <= alpha)     
-    TTable[index].Type = UPPER;
-  else if(score >= beta) 
-    TTable[index].Type = LOWER;
-  else                  
-    TTable[index].Type = EXACT;
-
-  /* normalize mate scores */
-  if (score > (+INF-500))
-    score += ply;
-  else if (score < (-INF+500))
-    score -= ply;
-
-  TTable[index].Hash = hash;
-  TTable[index].Hold_hash = hold_hash;
-  TTable[index].Depth = depth;
-  TTable[index].Bestmove = best;
-  TTable[index].Bound = score;
-  TTable[index].OnMove = ToMove;
-  TTable[index].Threat = threat;
-
+  if (DP_TTable[index].Depth <= depth)
+    {
+      if (score <= alpha)     
+	DP_TTable[index].Type = UPPER;
+      else if(score >= beta) 
+	DP_TTable[index].Type = LOWER;
+      else                  
+	DP_TTable[index].Type = EXACT;
+      
+      /* normalize mate scores */
+      if (score > (+INF-500))
+	score += ply;
+      else if (score < (-INF+500))
+	score -= ply;
+      
+      DP_TTable[index].Hash = hash;
+      DP_TTable[index].Hold_hash = hold_hash;
+      DP_TTable[index].Depth = depth;
+      DP_TTable[index].Bestmove = best;
+      DP_TTable[index].Bound = score;
+      DP_TTable[index].OnMove = ToMove;
+      DP_TTable[index].Threat = threat;
+    }
+  else 
+    {
+     if (score <= alpha)     
+	AS_TTable[index].Type = UPPER;
+      else if(score >= beta) 
+	AS_TTable[index].Type = LOWER;
+      else                  
+	AS_TTable[index].Type = EXACT;
+      
+      /* normalize mate scores */
+      if (score > (+INF-500))
+	score += ply;
+      else if (score < (-INF+500))
+	score -= ply;
+      
+      AS_TTable[index].Hash = hash;
+      AS_TTable[index].Hold_hash = hold_hash;
+      AS_TTable[index].Depth = depth;
+      AS_TTable[index].Bestmove = best;
+      AS_TTable[index].Bound = score;
+      AS_TTable[index].OnMove = ToMove;
+      AS_TTable[index].Threat = threat;
+    };
+  
   return;
 }
 
@@ -127,18 +160,14 @@ void LearnStoreTT(int score, unsigned nhash, unsigned hhash, int tomove, int bes
 
   index = nhash % TTSIZE;
 
-  if (TTable[index].Depth <= depth)
-    TTable[index].Depth = depth;
-  else
-    return;
-     
-  TTable[index].Type = EXACT;
-  TTable[index].Hash = nhash;
-  TTable[index].Hold_hash = hhash;
-  TTable[index].Bestmove = best;
-  TTable[index].Bound = score;
-  TTable[index].OnMove = tomove;
-  TTable[index].Threat = 0;
+  AS_TTable[index].Depth = depth;
+  AS_TTable[index].Type = EXACT;
+  AS_TTable[index].Hash = nhash;
+  AS_TTable[index].Hold_hash = hhash;
+  AS_TTable[index].Bestmove = best;
+  AS_TTable[index].Bound = score;
+  AS_TTable[index].OnMove = tomove;
+  AS_TTable[index].Threat = 0;
 
 }
 
@@ -153,9 +182,9 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
 
   index = hash % TTSIZE;
   
-  if ((TTable[index].Hash == hash) 
-      && (TTable[index].Hold_hash == hold_hash) 
-      && (TTable[index].OnMove == ToMove))
+  if ((DP_TTable[index].Hash == hash) 
+      && (DP_TTable[index].Hold_hash == hold_hash) 
+      && (DP_TTable[index].OnMove == ToMove))
     {
       TTHits++;
       
@@ -164,24 +193,52 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
       	   && (TTable[index].Bound < beta)) 
       	  *donull = FALSE;*/
 
-      if (TTable[index].Depth >= depth)
+      if (DP_TTable[index].Depth >= depth)
 	{
-	  *score = TTable[index].Bound;
+	  *score = DP_TTable[index].Bound;
 	  
 	  if (*score > (+INF-500))
 	   *score -= ply;
 	  else if (*score < (-INF+500))
 	    *score += ply;
 
-	  *best = TTable[index].Bestmove;
-	  *threat = TTable[index].Threat;
+	  *best = DP_TTable[index].Bestmove;
+	  *threat = DP_TTable[index].Threat;
 
-	  return TTable[index].Type;
+	  return DP_TTable[index].Type;
 	}
       else
 	{
-	  *best = TTable[index].Bestmove;
-	  *threat = TTable[index].Threat;
+	  *best = DP_TTable[index].Bestmove;
+	  *threat = DP_TTable[index].Threat;
+
+	  return DUMMY;
+	}
+    }
+  else if ((AS_TTable[index].Hash == hash) 
+      && (AS_TTable[index].Hold_hash == hold_hash) 
+      && (AS_TTable[index].OnMove == ToMove))
+    {
+      TTHits++;
+
+      if (AS_TTable[index].Depth >= depth)
+	{
+	  *score = AS_TTable[index].Bound;
+	  
+	  if (*score > (+INF-500))
+	   *score -= ply;
+	  else if (*score < (-INF+500))
+	    *score += ply;
+
+	  *best = AS_TTable[index].Bestmove;
+	  *threat = AS_TTable[index].Threat;
+
+	  return AS_TTable[index].Type;
+	}
+      else
+	{
+	  *best = AS_TTable[index].Bestmove;
+	  *threat = AS_TTable[index].Threat;
 
 	  return DUMMY;
 	}
@@ -190,3 +247,9 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
     return HMISS;
 
 }
+
+
+
+
+
+
