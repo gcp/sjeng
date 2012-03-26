@@ -63,7 +63,7 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 
 bin_PROGRAMS = sjeng
-sjeng_SOURCES = attacks.c crazy.c epd.c learn.c partner.c seval.c                 ttable.c book.c ecache.c eval.c moves.c search.c                 sjeng.c utils.c 		protos.h extvars.h sjeng.h
+sjeng_SOURCES = attacks.c crazy.c epd.c learn.c partner.c seval.c                 ttable.c book.c ecache.c eval.c moves.c search.c                 sjeng.c utils.c newbook.c 		protos.h extvars.h sjeng.h
 
 EXTRA_DIST = TODO NEWS ChangeLog COPYING BUGS THANKS
 SUBDIRS = books tests
@@ -79,7 +79,8 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 sjeng_OBJECTS =  attacks.o crazy.o epd.o learn.o partner.o seval.o \
-ttable.o book.o ecache.o eval.o moves.o search.o sjeng.o utils.o
+ttable.o book.o ecache.o eval.o moves.o search.o sjeng.o utils.o \
+newbook.o
 sjeng_LDADD = $(LDADD)
 sjeng_DEPENDENCIES = 
 sjeng_LDFLAGS = 

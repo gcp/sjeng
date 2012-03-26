@@ -35,6 +35,8 @@ char true_i_depth;
 
 int bestmovenum;
 
+int ugly_ep_hack;
+
 void order_moves (move_s moves[], long int move_ordering[], int num_moves, int best) {
 
   /* sort out move ordering scores in move_ordering, using implemented
@@ -46,8 +48,8 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
   int scap_values[14] = {
     0,100,100,310,310,5000,5000,500,500,900,900,325,325,0};
     
-  int i, from, target, promoted, captured;
-
+  int promoted, captured;
+  int i, from, target;
   /* fill the move ordering array: */
 
   /* if searching the pv, give it the highest move ordering, and if not, rely
@@ -179,7 +181,7 @@ void order_moves (move_s moves[], long int move_ordering[], int num_moves, int b
 	       && target == killer1[ply-1].target
 	       && promoted == killer1[ply-1].promoted)
 	move_ordering[i] += 2000;
-      else if (from == killer1[ply+1].from 
+    else if (from == killer1[ply+1].from 
 	       && target == killer1[ply+1].target
 	       && promoted == killer1[ply+1].promoted)
 	move_ordering[i] += 1500;
@@ -202,7 +204,8 @@ void perft (int depth) {
   }
 
   /* generate the move list: */
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]);
+  num_moves = numb_moves;
 
   /* loop through the moves at the current depth: */
   for (i = 0; i < num_moves; i++) {
@@ -235,7 +238,6 @@ long int qsearch (int alpha, int beta, int depth) {
   long int score = -INF, standpat, move_ordering[MOVE_BUFF];
   bool legal_move, no_moves = TRUE;
   int sbest, best_score, best, delta;
-  int lzscore;
   
   /* return our score if we're at a leaf node: */
   if (depth <= 0) {
@@ -255,25 +257,8 @@ long int qsearch (int alpha, int beta, int depth) {
   
   best = -1;
 
-#ifdef LAZYEVAL
-  lzscore = white_to_move ? Material : -Material;
-
-  if (lzscore - 250 >= beta)
-  {
-  	return beta;
-  }
-  else if (lzscore + 250 < alpha)
-  {
-  	/*standpat = alpha;*/standpat = lzscore;
-  }
-  else
-  {
-  	standpat = eval ();
-  }
-#else
-  standpat = eval();
-#endif
-
+  standpat = eval ();
+  
   if (standpat >= beta) {
     return standpat;        /* standpat */
   }
@@ -287,10 +272,11 @@ long int qsearch (int alpha, int beta, int depth) {
   sbest = -1;
   best_score = -INF;
     
-  delta = alpha-(Variant == Normal ? 100 : 200)-standpat;
+  delta = alpha-(Variant == Normal ? 150 : 200)-standpat;
 
   /* generate and order moves: */
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]);
+  num_moves = numb_moves;
   order_moves (&moves[0], &move_ordering[0], num_moves, best);
 
   /* loop through the moves at the current node: */
@@ -324,7 +310,7 @@ long int qsearch (int alpha, int beta, int depth) {
     unmake (&moves[0], i);
     ply--;
 
-    if(score > best_score) best_score = score;
+    if(score > best_score && legal_move) best_score = score;
 
     /* check our current score vs. alpha: */
     if (score > alpha && legal_move) {
@@ -401,6 +387,9 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   bool incheck, first;
   int extend = 0, fscore, fmax, selective = 0;
   int rep_loop;
+  move_s kswap;
+  int ksswap;
+  int originalalpha;
 
   /* before we do anything, see if we're out of time: */
   if (!(nodes & 4095)) {
@@ -422,7 +411,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   incheck = in_check();
 
   /* perform check extensions if we haven't gone past maxdepth: */
-  if (ply < maxdepth+1 && incheck && ((depth <= 0) || (ply <= (i_depth*2)))) 
+  if (ply < maxdepth+1 && incheck && ((depth <= 0) || (ply <= (i_depth*3)))) 
     {
       depth++;
       ext_check++;
@@ -433,10 +422,10 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   if (depth <= 0) {
     
     captures = TRUE;
-    score = qsearch (alpha, beta, ply * 2);   
+    score = qsearch (alpha, beta, ply * 3);   
     captures = FALSE;
 
-    return score; /*score;*/
+    return score; 
   }
 
   num_moves = 0;
@@ -469,10 +458,11 @@ long int search (int alpha, int beta, int depth, bool is_null) {
    
   sbest = -1;
   best_score = -INF;
+  originalalpha = alpha;
 
   old_ep = ep_square;
 
-  if (((piece_count > 6) || (depth < 5)) && (is_null == FALSE) && !incheck && donull && (threat == FALSE))
+  if (((piece_count > 10) || (depth < 5)) && (is_null == FALSE) && !incheck && donull && (threat == FALSE))
     {
 
       ep_square = 0;      
@@ -494,11 +484,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 
       NTries++;
 
-      if (depth > 3) NDTries++;
-
       if (score >= beta)
 	{
-	  if (depth > 3) NDCuts++;
 	  
 	  NCuts++;
 	  
@@ -520,7 +507,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       depth++;
       extend++;
     }
-
+  
   pv_length[ply] = ply;
  
 #define IDEEP
@@ -545,29 +532,34 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   
   first = TRUE;
 
-  fscore = (white_to_move ? Material : -Material) + (Variant == Normal ? 900 : 450);
+  if (phase != Endgame)
+  {
 
-  if (!extend && depth == 3 && fscore <= alpha)
-    depth = 2;
+    fscore = (white_to_move ? Material : -Material) + 900;
+    
+    if (!extend && depth == 3 && fscore <= alpha)
+      depth = 2;
+    
+    fscore = (white_to_move ? Material : -Material) + 500;
+    
+    if (!extend && depth == 2 && fscore <= alpha)
+      {
+	selective = 1;
+	best_score = fmax = fscore;
+      }
+    
+    fscore = (white_to_move ? Material : -Material) + (Variant == Normal ? 100 : 200);
+    
+    if (!extend && depth == 1 && fscore <= alpha)
+      {
+	selective = 1;
+	best_score = fmax = fscore;
+      }
+  }
   
-  fscore = (white_to_move ? Material : -Material) + (Variant == Normal ? 500 : 250);
-
-  if (!extend && depth == 2 && fscore <= alpha)
-    {
-      selective = 1;
-      best_score = fmax = fscore;
-    }
-
-  fscore = (white_to_move ? Material : -Material) + (Variant == Normal ? 100 : 200);
-
-  if (!extend && depth == 1 && fscore <= alpha)
-    {
-      selective = 1;
-      best_score = fmax = fscore;
-    }
-
   /* generate and order moves: */
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]); 
+  num_moves = numb_moves;
   order_moves (&moves[0], &move_ordering[0], num_moves, best);
 
   /* loop through the moves at the current node: */
@@ -583,14 +575,14 @@ long int search (int alpha, int beta, int depth, bool is_null) {
      
      if (check_legal (&moves[0], i)) {
 
-      extend = 0;
+       extend = 0; /* dont extend twice */
 
       /* Razoring of uninteresting drops */
         if ((moves[i].from == 0)
 	&& (depth > 1)   /* more than pre-frontier nodes */
         && !in_check()   /* not a checking move */
 	&& !incheck      /* not a check evasion */
-	&& !first        /* dont want to razor the PV! */
+        && !searching_pv
 	)
 	{ razor_drop++; extend--;};
 
@@ -604,9 +596,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 
         nodes++;
 
-	/* Dynamically decide whether it would be safe to do PVS */
-	
-	if ((first == TRUE) || (best == -1))
+	if (first == TRUE)
 	  { 
 	    ep_square = old_ep;
 	    score = -search (-beta, -alpha, depth+extend-1, FALSE);
@@ -639,7 +629,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	
     }
 
-    if (score > best_score) best_score = score;
+    if (score > best_score && legal_move) best_score = score;
 
     unmake (&moves[0], i);
     ply--;
@@ -659,25 +649,56 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	if (moves[i].captured == npiece)
 	  {
 	    /* we have a cutoff, so update our killers: */
-	    if (score > killer_scores[ply]) {
-	      killer_scores2[ply] = killer_scores[ply];
-	      killer_scores[ply] = score;
-	      killer3[ply] = killer2[ply];
-	      killer2[ply] = killer1[ply];
-	      killer1[ply] = moves[i];
-	    }
-	    else if (score > killer_scores2[ply]) {
-	      killer_scores2[ply] = score;
-	      killer3[ply] = killer2[ply];
-	      killer2[ply] = moves[i];
-	    };
+	    /* first, check whether it matches one of the known killers */
+	    if (moves[i].from == killer1[ply].from && moves[i].target ==
+		killer1[ply].target && moves[i].promoted == killer1[ply].promoted)
+	      {
+		killer_scores[ply]++;
+	      }
+	    else if (moves[i].from == killer2[ply].from && moves[i].target ==
+		     killer2[ply].target && moves[i].promoted == killer2[ply].promoted)
+	      {
+		killer_scores2[ply]++;
+		
+		if (killer_scores2[ply] > killer_scores[ply])
+		  {
+		    kswap = killer1[ply];
+		    killer1[ply] = killer2[ply];
+		    killer2[ply] = kswap;		
+		    ksswap = killer_scores[ply];
+		    killer_scores[ply] = killer_scores2[ply];
+		    killer_scores2[ply] = ksswap;
+		  }
+	      }
+	    
+	    else if (moves[i].from == killer3[ply].from && moves[i].target ==
+		     killer3[ply].target && moves[i].promoted == killer3[ply].promoted)
+	      {
+		killer_scores3[ply]++;
+		
+		if (killer_scores3[ply] > killer_scores2[ply])
+		  {
+		    kswap = killer2[ply];
+		    killer2[ply] = killer3[ply];
+		    killer3[ply] = kswap;		
+		    ksswap = killer_scores2[ply];
+		    killer_scores2[ply] = killer_scores3[ply];
+		    killer_scores3[ply] = ksswap;
+		  }
+	      }
+	    /* if not, replace killer3 */
+	    else
+	      {
+		killer_scores3[ply] = 1;
+		killer3[ply] = moves[i];
+	      }
 	  }
 
 	if (first == TRUE) FHF++;
 
 	FH++;
 	
-	StoreTT(score, alpha, beta, i, threat, depth);
+	StoreTT(score, originalalpha, beta, i, threat, depth);
 
 	return score;
       }
@@ -702,27 +723,27 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   if (no_moves) {
     if (in_check ()) {
 
-      StoreTT(-INF+ply, alpha, beta, 0, threat, depth);
+      StoreTT(-INF+ply, originalalpha, beta, 0, threat, depth);
 
       return (-INF+ply);
     }
     else {
 
-      StoreTT(0, alpha, beta, 0, threat, depth);
+      StoreTT(0, originalalpha, beta, 0, threat, depth);
 
       return 0;
     }
   }
 
-  if (best_score <= alpha)
+  if (best_score <= originalalpha)
     {
       if (!selective)
-	StoreTT(best_score, alpha, beta, sbest, threat, depth);
+	StoreTT(best_score, originalalpha, beta, sbest, threat, depth);
     }
   else 
     {
       if (!selective)
-	StoreTT(best_score, alpha, beta, sbest, threat, depth);
+	StoreTT(best_score, originalalpha, beta, sbest, threat, depth);
       else
 	StoreTT(best_score, -INF, -INF, sbest, threat, depth);/*store lowbound*/
     }
@@ -742,6 +763,8 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
   bool no_moves, legal_move, first, found_move;
   int old_ep;
   int alpha, beta;
+  move_s kswap;
+  int ksswap;
 
   alpha = originalalpha;
   beta = originalbeta;
@@ -763,8 +786,11 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
  
   if (in_check ()) {ext_check++;depth++;};
 
+  ugly_ep_hack = ep_square;
+
   /* generate and order moves: */
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]);
+  num_moves = numb_moves;
   order_moves (&moves[0], &move_ordering[0], num_moves, -1);
 
   /* loop through the moves at the root: */
@@ -839,29 +865,40 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 		  post_fail_thinking(root_score, &moves[i]); 
 		}
 	      
+	      if (root_score > cur_score) 
+		{
+		  cur_score = root_score;
+		  bestmovenum = i;
+		  best_move = moves[i];
+		}
+	      
 	      root_score = -search(-beta, -root_score, depth-1, FALSE);
 	      ep_square = old_ep;
 	    }
 	}
 
-      if (root_score > cur_score) 
+    if (root_score > cur_score && !time_exit) 
 	{
 	  cur_score = root_score;
 	  bestmovenum = i;
 	  best_move = moves[i];
 	}
       
-      /* check to see if we've aborted this search before we found a move: */
-      /* or a failed search */   
-      if (time_exit && (no_moves || cur_score <= originalalpha || cur_score >= originalbeta))
-	{
+      /* check to see if we've aborted this search before we found a move: 
+       * or a failed search <- removed 2000-5-28
+       * we should use the fail-highs
+       * and the fail-lows are handled in think */   
+    if (time_exit)
+      {
+	if (no_moves)
 	  time_failure = TRUE;
-	}
-      
-      no_moves = FALSE;
-      legal_move = TRUE;
+      }
+    
+    no_moves = FALSE;
+    legal_move = TRUE;
+    
     }
-
+    
     unmake (&moves[0], i);
     ply--;
 
@@ -872,19 +909,49 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
     /* check our current score vs. alpha: */
     if (root_score > alpha && legal_move) {
 
-      /* we have a cutoff, so update our killers: */
-      if (root_score > killer_scores[ply]) {
-	killer_scores2[ply] = killer_scores[ply];
-	killer_scores[ply] = root_score;
-	killer3[ply] = killer2[ply];
-	killer2[ply] = killer1[ply];
-	killer1[ply] = moves[i];
-      }
-      else if (root_score > killer_scores2[ply]) {
-	killer_scores2[ply] = root_score;
-	killer3[ply] = killer2[ply];
-	killer2[ply] = moves[i];
-      }
+       /* we have a cutoff, so update our killers: */
+      /* first, check whether it matches one of the known killers */
+      if (moves[i].from == killer1[ply].from && moves[i].target ==
+	 killer1[ply].target && moves[i].promoted == killer1[ply].promoted)
+	{
+	  killer_scores[ply]++;
+	}
+      else if (moves[i].from == killer2[ply].from && moves[i].target ==
+	killer2[ply].target && moves[i].promoted == killer2[ply].promoted)
+	{
+	  killer_scores2[ply]++;
+		
+	  if (killer_scores2[ply] > killer_scores[ply])
+	    {
+	      kswap = killer1[ply];
+	      killer1[ply] = killer2[ply];
+	      killer2[ply] = kswap;		
+	      ksswap = killer_scores[ply];
+	      killer_scores[ply] = killer_scores2[ply];
+	      killer_scores2[ply] = ksswap;
+	    }
+	}
+      else if (moves[i].from == killer3[ply].from && moves[i].target ==
+	       killer3[ply].target && moves[i].promoted == killer3[ply].promoted)
+	{
+	  killer_scores3[ply]++;
+	  
+	  if (killer_scores3[ply] > killer_scores2[ply])
+	    {
+	      kswap = killer2[ply];
+	      killer2[ply] = killer3[ply];
+	      killer3[ply] = kswap;		
+	      ksswap = killer_scores2[ply];
+	      killer_scores2[ply] = killer_scores3[ply];
+	      killer_scores3[ply] = ksswap;
+	    }
+	}
+	/* if not, replace killer3 */
+	else
+	{
+	  killer_scores3[ply] = 1;
+	  killer3[ply] = moves[i];
+	}
 
       /* update the history heuristic since we have a cutoff: */
       /* PGC square it */
@@ -954,6 +1021,8 @@ move_s think (void) {
   float et = 0;
   int alpha, beta;
   int tmptmp;
+  int rs;
+  int failed;
 
   nodes = 0;
   qnodes = 0;
@@ -965,9 +1034,7 @@ move_s think (void) {
   TTHits = 0;
   TTStores = 0;  
   NCuts = 0;
-  NDCuts = 0;
   NTries = 0;
-  NDTries = 0;
   TExt = 0;
   DeltaTries = 0;
   DeltaCuts = 0;
@@ -979,33 +1046,59 @@ move_s think (void) {
   ext_check = 0;
   razor_drop = 0;
   razor_material = 0;
+  rs = 0;
 
   true_i_depth = 0;
   bestmovenum = -1;
 
+  /* Don't do anything if the queue isn't clean */
+  if (interrupt()) return dummy;
+  
   ep_temp = ep_square;
  
   start_time = rtime ();
   cpu_start = clock ();
   
    /* before we do anything, check to see if we can make a move from book! */
-   if (book_ply < 20 && !is_analyzing && !is_pondering) {
+   if (book_ply < 40 && !is_analyzing && !is_pondering) {
      comp_move = choose_book_move();
-      /* if choose_book_move() didn't return a junk move indicating that
-         no book move was found, play the book move! :) */
-
-      if (comp_move.target != 0) {
-	comp_to_coord (comp_move, postmove);
-	printf("0 0 0 0 %s (Book Move)\n", postmove);
-	cpu_end = clock ();
-	
-	ep_square = ep_temp;
-
-	return comp_move;
-      }
+     ep_square = ep_temp;
+     /* if choose_book_move() didn't return a junk move indicating that
+	no book move was found, play the book move! :) */
+     
+     if (comp_move.target == 0)
+       comp_move = choose_binary_book_move();
+     
+     ep_square = ep_temp; 
+     
+     if (comp_move.target != 0) 
+       {
+	 comp_to_coord (comp_move, postmove);
+	 printf("0 0 0 0 %s (Book Move)\n", postmove);
+	 cpu_end = clock ();
+	 
+	 ep_square = ep_temp;
+	 
+	 return comp_move;
+       }
    }
+   
+   check_phase();
 
-  /* allocate our time for this move: */
+   switch(phase)
+     {
+     case Opening :
+       printf("Opening phase.\n");
+       break;
+     case Middlegame :
+       printf("Middlegame phase.\n");
+       break;
+     case Endgame :
+       printf("Endgame phase.\n");
+       break;
+     }
+   
+   /* allocate our time for this move: */
 
    if (!is_pondering)
      {
@@ -1047,14 +1140,15 @@ move_s think (void) {
 
   /* clear the killer moves: */
   for (i = 0; i < PV_BUFF; i++) {
-    killer_scores[i] = -INF;
-    killer_scores2[i] = -INF;
+    killer_scores[i] = 0;
+    killer_scores2[i] = 0;
+    killer_scores3[i] = 0;
     killer1[i] = dummy;
     killer2[i] = dummy;
     killer3[i] = dummy;
   }
 
-  cpu_start = clock();
+//  cpu_start = clock();
 
   temp_score = 0;
   cur_score = 0;
@@ -1068,29 +1162,40 @@ move_s think (void) {
     if (elapsed > time_for_move*2.0/3.0 && i_depth > mindepth)
       break;
 
+    failed = 0;
+
     alpha = temp_score - (Variant == Normal ? 50 : 100);
     beta = temp_score + (Variant == Normal ? 50 : 100);
 
     ep_square = ep_temp;
     temp_move = search_root (alpha, beta, i_depth);
 
+    if (cur_score <= alpha) failed = 1;
+	
     if (cur_score <= alpha && !time_exit) /* fail low */
       {
 	alpha = cur_score - (Variant == Normal ? 350 : 600);
 	beta = cur_score + 1;
 
-	printf("RS\n");
+	rs++;
 
 	ep_square = ep_temp;
 	temp_move = search_root (alpha, beta, i_depth);	
+
+	if (cur_score > alpha && !time_exit) failed = 0;
 
 	if (cur_score <= alpha && !time_exit)
 	  {
 	    alpha = -(INF+1);
 	    beta = cur_score + 1;
 
+	    rs++;
+
 	    ep_square = ep_temp;
 	    temp_move = search_root (alpha, beta, i_depth);	
+
+	    if (cur_score > alpha && !time_exit) failed = 0;
+		
 	  }
 	else if (cur_score >= beta && !time_exit)
 	  {
@@ -1102,7 +1207,7 @@ move_s think (void) {
 	alpha = cur_score - 1;
 	beta = cur_score + (Variant == Normal ? 350 : 600);
 
-	printf("RS\n");
+	rs++;
 
 	ep_square = ep_temp;
 	temp_move = search_root (alpha, beta, i_depth);
@@ -1112,20 +1217,22 @@ move_s think (void) {
 	    alpha = cur_score - 1;
 	    beta = +(INF+1);
 	    
-	    printf("RS\n");
+	    rs++;
 	    
 	    ep_square = ep_temp;
 	    temp_move = search_root (alpha, beta, i_depth);
+
 	  }
 	else if (cur_score <= alpha && !time_exit)
 	  {
 	    /*printf("Fail low on fail-high\n");*/
 	  };
       };
+	
+	ep_square = ep_temp;
 
     if (interrupt()) 
       {
-	ep_square = ep_temp;
 	if (is_pondering)
 	  return;
 	else if (!go_fast)
@@ -1134,30 +1241,34 @@ move_s think (void) {
 
     /* if we haven't aborted our search on time, set the computer's move
        and post our thinking: */
-    if (!time_failure && !time_exit) {
+    if (!time_failure && !failed) {
       /* if our search score suddenly drops, and we ran out of time on the
 	 search, just use previous results */
       /* GCP except when we found a mate...maybe generalise ? */
-      /* disabled for now */
-      /*   if (time_exit && (cur_score < temp_score-40) && (cur_score > -900000))
-      	break;*/
-
-      true_i_depth = i_depth;
-
-      comp_move = temp_move;
-      temp_score = cur_score;
-      if (i_depth >= mindepth)
-	post_thinking (cur_score);
-      
+      /* enabled 2000-5-28 */
+      if (time_exit && (cur_score < temp_score-50) && (cur_score > -900000))
+      	break;
+  	 
+	comp_move = temp_move;
+	temp_score = cur_score;
+	if (!time_exit)
+	  {
+	    true_i_depth = i_depth;
+	  }      
+	
+	if (i_depth >= mindepth)
+	  post_thinking (cur_score);
+	
     }
 
     /* reset the killer scores (we can keep the moves for move ordering for
        now, but the scores may not be accurate at higher depths, so we need
        to reset them): */
-    for (j = 0; j < PV_BUFF; j++) {
-      killer_scores[j] = -INF;
-      killer_scores2[j] = -INF;
-    }
+   for (j = 0; j < PV_BUFF; j++) {
+      killer_scores[j] = 0;
+      killer_scores2[j] = 0;
+      killer_scores3[j] = 0;
+   }
 
   }
 
@@ -1187,12 +1298,13 @@ move_s think (void) {
 
       if ((et > 0) && (Variant != Bughouse))
 	{
-	  printf("tellics whisper ply: %d score: %ld move: %s nodes: %ld qp: %.0f%% fh: %.0f%% pvs: %.0f%% pvsf: %.0f%% time: %.2f nps: %ld\n",
+	  printf("tellics whisper ply: %d score: %ld move: %s nodes: %ld qp: %.0f%% fh: %.0f%% pvs: %.0f%% pvsf: %.0f%% rs: %d time: %.2f nps: %ld\n",
 		 true_i_depth, temp_score, postmove, nodes, 
 		 (((float)qnodes*100)/((float)nodes+1)),
 		 ((float)FHF*100)/((float)FH+1),
 		 ((float)PVS*100)/((float)FULL+1),
 		 ((float)PVSF*100)/((float)PVS+1),
+		 rs,
 		 et, 
 		 (long)((float) nodes/(float) (et)));
 	}
@@ -1201,7 +1313,7 @@ move_s think (void) {
   
   if ((result != white_is_mated) 
       && (result != black_is_mated)
-      && (result != stalemate) && (true_i_depth >= 2))
+      && (result != stalemate) && (true_i_depth >= 3))
     {
       if (bestmovenum == -1) DIE;
 
@@ -1251,7 +1363,8 @@ void tree (int depth, int indent, FILE *output, char *disp_b) {
   }
 
   /* generate the move list: */
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]);
+  num_moves = numb_moves;
 
   /* loop through the moves at the current depth: */
   for (i = 0; i < num_moves; i++) {
@@ -1282,3 +1395,4 @@ void tree (int depth, int indent, FILE *output, char *disp_b) {
   ep_square = ep_temp;
 
 }
+

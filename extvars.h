@@ -28,8 +28,8 @@ extern int board[144], moved[144], ep_square, white_to_move, wking_loc,
   squares[144], num_pieces, i_depth, comp_color;
 
 extern long int nodes, raw_nodes, qnodes, piece_count, killer_scores[PV_BUFF],
-  killer_scores2[PV_BUFF], moves_to_tc, min_per_game, inc, time_left,
-  opp_time, time_cushion, time_for_move, cur_score;
+  killer_scores2[PV_BUFF], killer_scores3[PV_BUFF], moves_to_tc, min_per_game,
+  inc, time_left, opp_time, time_cushion, time_for_move, cur_score;
 
 extern unsigned long history_h[144][144];
 
@@ -74,16 +74,14 @@ extern char book[4000][81];
 extern int num_book_lines;
 extern int book_ply;
 extern int use_book;
-extern char opening_history[81];
+extern char opening_history[STR_BUFF];
 
 extern int Material;
 extern int material[17];
 extern int zh_material[17];
 extern int std_material[17];
 
-extern int NTries;
-extern int NCuts;
-extern int NDTries, NDCuts, TExt;
+extern int NTries, NCuts, TExt;
 
 extern char ponder_input[STR_BUFF];
 
@@ -118,6 +116,15 @@ extern long fixed_time;
 
 extern int hand_value[];
 
+extern int numb_moves;
+
+extern int phase;
+
 FILE *lrn_standard;
 FILE *lrn_zh;
 extern int bestmovenum;
+
+extern int ugly_ep_hack;
+
+
+

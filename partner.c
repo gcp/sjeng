@@ -519,8 +519,8 @@ void CheckBadFlow(bool reset)
   
       DropaddHolding((white_to_move ? wpawn : bpawn) , !white_to_move);
       
-      his_num_moves = 0;
-      gen(&hismoves[0], &his_num_moves);
+      gen(&hismoves[0]);
+      his_num_moves = numb_moves;
       
       for(i = 0; (i < his_num_moves) && (pawnmates == FALSE); i++)
 	{
@@ -529,9 +529,9 @@ void CheckBadFlow(bool reset)
 	  if (check_legal(&hismoves[0], i))
 	    {
 	      pawnmates = TRUE;
-
-	      our_num_moves = 0;
-	      gen(&ourmoves[0], &our_num_moves);
+	      
+	      gen(&ourmoves[0]); 
+	      our_num_moves = numb_moves;
 	      
 	      for (j = 0; (j < our_num_moves) && (pawnmates == TRUE); j++)
 		{
@@ -540,7 +540,7 @@ void CheckBadFlow(bool reset)
 		  
 		  if (check_legal(&ourmoves[0], j))
 		    pawnmates = FALSE;
-
+		  
 		  unmake(&ourmoves[0], j);
 		  
 		}
@@ -549,14 +549,14 @@ void CheckBadFlow(bool reset)
 	}
       DropremoveHolding((white_to_move ? wpawn : bpawn), !white_to_move);
     }
- 
+  
   if (!holding[!white_to_move][(white_to_move ? wknight : bknight)])
     {
       
       DropaddHolding((white_to_move ? wknight : bknight) , !white_to_move);
-
-      his_num_moves = 0;
-      gen(&hismoves[0], &his_num_moves);
+      
+      gen(&hismoves[0]); 
+      his_num_moves = numb_moves;
       
       for(i = 0; (i < his_num_moves) && (knightmates == FALSE); i++)
 	{
@@ -567,15 +567,15 @@ void CheckBadFlow(bool reset)
 	    {
 	      knightmates = TRUE;
 	      
-	      our_num_moves = 0;
-	      gen(&ourmoves[0], &our_num_moves);
+	      gen(&ourmoves[0]); 
+	      our_num_moves = numb_moves;
 	      
 	      for (j = 0; (j < our_num_moves) && (knightmates == TRUE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
 		  if (check_legal(&ourmoves[0], j))
-		      knightmates = FALSE;
+		    knightmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j);
 		}
@@ -584,14 +584,14 @@ void CheckBadFlow(bool reset)
 	}
       DropremoveHolding((white_to_move ? wknight : bknight), !white_to_move);
     }
-
+  
   if (!holding[!white_to_move][(white_to_move ? wbishop : bbishop)])
     {      
       
       DropaddHolding((white_to_move ? wbishop : bbishop) , !white_to_move);
       
-      his_num_moves = 0;
-      gen(&hismoves[0], &his_num_moves);
+      gen(&hismoves[0]); 
+      his_num_moves = numb_moves;
       
       for(i = 0; (i < his_num_moves) && (bishopmates == FALSE); i++)
 	{
@@ -600,16 +600,16 @@ void CheckBadFlow(bool reset)
 	  if (check_legal(&hismoves[0], i))
 	    {
 	      bishopmates = TRUE;
-
-	      our_num_moves = 0;     
-	      gen(&ourmoves[0], &our_num_moves);
+	      
+	      gen(&ourmoves[0]);
+	      our_num_moves = numb_moves;
 	      
 	      for (j = 0; (j < our_num_moves) && (bishopmates == TRUE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
 		  if (check_legal(&ourmoves[0], j))
-		      bishopmates = FALSE;
+		    bishopmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j);
 		}
@@ -618,14 +618,14 @@ void CheckBadFlow(bool reset)
 	}
       DropremoveHolding((white_to_move ? wbishop : bbishop), !white_to_move);  
     }
-
+  
   if (!holding[!white_to_move][(white_to_move ? wrook : brook)])
     {
-
+      
       DropaddHolding((white_to_move ? wrook : brook) , !white_to_move);
-
-      his_num_moves = 0;
-      gen(&hismoves[0], &his_num_moves);
+      
+      gen(&hismoves[0]);
+      his_num_moves= numb_moves;
       
       for(i = 0; (i < his_num_moves) && (rookmates == FALSE); i++)
 	{
@@ -634,16 +634,16 @@ void CheckBadFlow(bool reset)
 	  if (check_legal(&hismoves[0], i))
 	    {
 	      rookmates = TRUE;
-
-	      our_num_moves = 0;     
-	      gen(&ourmoves[0], &our_num_moves);
+	      
+	      gen(&ourmoves[0]);
+	      our_num_moves = numb_moves;
 	      
 	      for (j = 0; (j < our_num_moves) && (rookmates == TRUE); j++)
 		{
 		  make(&ourmoves[0], j);
 		  
 		  if (check_legal(&ourmoves[0], j))
-		      rookmates = FALSE;
+		    rookmates = FALSE;
 		  
 		  unmake(&ourmoves[0], j); 
 		}
@@ -652,14 +652,14 @@ void CheckBadFlow(bool reset)
 	}
       DropremoveHolding((white_to_move ? wrook : brook), !white_to_move); 
     }
-
+  
   if (!holding[!white_to_move][(white_to_move ? wqueen : bqueen)])
     {
-
+      
       DropaddHolding((white_to_move ? wqueen : bqueen) , !white_to_move);
 
-      his_num_moves = 0;
-      gen(&hismoves[0], &his_num_moves);
+      gen(&hismoves[0]);
+      his_num_moves= numb_moves;
       
       for(i = 0; (i < his_num_moves) && (queenmates == FALSE); i++)
 	{
@@ -668,9 +668,9 @@ void CheckBadFlow(bool reset)
 	  if (check_legal(&hismoves[0], i))
 	    {
 	      queenmates = TRUE;
-
-	      our_num_moves = 0;     
-	      gen(&ourmoves[0], &our_num_moves);
+	      
+	      gen(&ourmoves[0]);
+	      our_num_moves = numb_moves;
 	      
 	      for (j = 0; (j < our_num_moves) && (queenmates == TRUE); j++)
 		{
@@ -678,7 +678,7 @@ void CheckBadFlow(bool reset)
 		  
 		  if (check_legal(&ourmoves[0], j))
 		    queenmates = FALSE;
-		 		  
+		  
 		  unmake(&ourmoves[0], j); 
 		}
 	    }
@@ -688,7 +688,7 @@ void CheckBadFlow(bool reset)
     }
 
   /* order in which we tell things is important if we partner ourselves */
- 
+  
   /* only update if changed */
   if (pawnmates != pawnmated)
     {
@@ -772,3 +772,4 @@ void CheckBadFlow(bool reset)
 
   return;
 }
+

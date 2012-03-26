@@ -25,7 +25,9 @@
 #include "sjeng.h"
 #include "extvars.h"
 #include "protos.h"
+#include "config.h"
 
+#include "limits.h" 
 #ifdef HAVE_SELECT
 #include <sys/types.h>
 #include <sys/time.h>
@@ -55,7 +57,7 @@ long int allocate_time (void) {
        faster, and if we have < 1 min left and a small increment, we REALLY
        need to start moving fast.  Also, if we aren't in a super fast
        game, don't worry about being behind on the clock at the beginning,
-       because some players will make instant moves in the opening, and Faile
+       because some players will make instant moves in the opening, and Sjeng
        will play poorly if it tries to do the same. */
 
     /* check to see if we're behind on time and need to speed up: */
@@ -78,9 +80,9 @@ long int allocate_time (void) {
     /* add our increment if applicable: */
     if (inc) {
       if (time_left-allocated_time < inc+35)
-	allocated_time += (time_left-allocated_time)*2.0/3.0;
+	allocated_time += (time_left-allocated_time)*4.0/5.0;
       else
-	allocated_time += inc*2.0/3.0;
+	allocated_time += inc*4.0/5.0;
     }
 
   }
@@ -102,6 +104,157 @@ long int allocate_time (void) {
 
 }
 
+void comp_to_san (move_s move, char str[])
+{
+  move_s moves[MOVE_BUFF];
+  move_s evade_moves[MOVE_BUFF];
+  char type_to_char[] = { 'F', 'P', 'P', 'N', 'N', 'K', 'K', 'R', 'R', 'Q', 'Q', 'B', 'B', 'E' };
+  int i, num_moves, evasions, ambig, mate;
+  int f_rank, t_rank, converter;
+  char f_file, t_file;
+  int ep_temp;
+	
+  ep_temp = ep_square;
+	
+  f_rank = rank (move.from);
+  t_rank = rank (move.target);
+  converter = (int) 'a';
+  f_file = file (move.from)+converter-1;
+  t_file = file (move.target)+converter-1;
+  
+  if (move.from == 0)
+    {
+      sprintf (str, "%c@%c%d", type_to_char[move.promoted], t_file, t_rank);
+    }
+  else if ((board[move.from] == wpawn) || (board[move.from] == bpawn))
+    { 
+      if (board[move.target] == npiece && !move.ep)
+	{
+	  if(!move.promoted)
+	    {
+	      sprintf (str, "%c%d", t_file, t_rank);
+	    }
+	  else
+	    {
+	      sprintf (str, "%c%d=%c", t_file, t_rank, type_to_char[move.promoted]);
+	    }
+	}
+      else
+	{
+	  if (!move.promoted)
+	    {
+	      sprintf (str, "%cx%c%d", f_file, t_file, t_rank);
+	    }
+	  else
+	    {
+	      sprintf (str, "%cx%c%d=%c", f_file, t_file, t_rank, 
+		       type_to_char[move.promoted]);
+	    }
+	}
+    }
+  else if (move.castled != no_castle)
+    {
+      if (move.castled == wck || move.castled == bck)
+	{
+	  sprintf (str, "O-O");
+	}
+      else
+	{
+	  sprintf(str, "O-O-O");
+	}
+    }
+  else
+    {
+      ambig = -1;
+      num_moves = 0;
+      
+      gen(&moves[0]);
+      num_moves = numb_moves;
+      
+      /* check whether there is another, identical piece that
+	 could also move to this square */
+      for(i = 0; i < num_moves; i++)
+	{
+	  if ((moves[i].target == move.target) &&
+	      (board[moves[i].from] == board[move.from]) &&
+	      (moves[i].from != move.from))
+	    {
+	      /* would it be a legal move ? */
+	      make(&moves[0], i);
+	      if (check_legal(&moves[0], i))
+		{
+		  unmake(&moves[0], i);
+		  ambig = i;
+		  break;
+		}
+	      unmake(&moves[0], i);
+	    }
+	}
+      
+      if (ambig != -1)
+	{
+	  
+	  if (board[move.target] == npiece)
+	    {
+	      if (file(moves[ambig].from) != file(move.from))
+		sprintf(str, "%c%c%c%d", type_to_char[board[move.from]],
+			f_file, t_file, t_rank);
+	      else
+		sprintf(str, "%c%d%c%d", type_to_char[board[move.from]],
+			f_rank, t_file, t_rank);
+	    }
+	  else
+	    {
+	      if (file(moves[ambig].from) != file(move.from))
+		sprintf(str, "%c%cx%c%d", type_to_char[board[move.from]],
+			f_file, t_file, t_rank);
+	      else
+		sprintf(str, "%c%dx%c%d", type_to_char[board[move.from]],
+			f_rank, t_file, t_rank);
+	    }
+	}
+      else
+	{
+	  if (board[move.target] == npiece)
+	    {
+	      sprintf(str, "%c%c%d", type_to_char[board[move.from]],
+		      t_file, t_rank);
+	    }
+	  else
+	    {
+	      sprintf(str, "%cx%c%d", type_to_char[board[move.from]],
+		      t_file, t_rank);
+	    }
+	}
+    }
+  make(&move, 0);
+  if (in_check())
+    {
+      mate = TRUE;
+      evasions = 0;
+      gen(&evade_moves[0]); 
+      evasions = numb_moves;
+      
+      for (i = 0; i < evasions; i++)
+	{
+	  make(&evade_moves[0], i);
+	  if (check_legal(&evade_moves[0], i))
+	    {
+	      mate = FALSE;
+	      unmake(&evade_moves[0], i);
+	      break;
+	    }
+	  unmake(&evade_moves[0], i);
+	}
+      if (mate == TRUE)
+	strcat(str, "#");
+      else
+	strcat(str, "+");
+    }
+  unmake(&move, 0);
+  
+  ep_square = ep_temp;
+}
 
 void comp_to_coord (move_s move, char str[]) {
 
@@ -196,8 +349,6 @@ void init_game (void) {
 
   /* set up a new game: */
 
-  int i;
-
   int init_board[144] = {
   0,0,0,0,0,0,0,0,0,0,0,0,
   0,0,0,0,0,0,0,0,0,0,0,0,
@@ -214,9 +365,8 @@ void init_game (void) {
   };
 
   memcpy (board, init_board, sizeof (init_board));
-  for (i = 0; i <= 143; i++)
-    moved[i] = 0;
-
+  memset (moved, 0, sizeof(moved));
+  
   white_to_move = 1;
   ep_square = 0;
   wking_loc = 30;
@@ -243,13 +393,15 @@ void init_game (void) {
   reset_piece_square ();
   
   book_ply = 0;
+  
+  phase = Opening;
 }
 
 
 bool is_move (char str[]) {
 
   /* check to see if the input string is a move or not.  Returns true if it
-     is in a move format supported by Faile. */
+     is in a move format supported by Sjeng. */
 
   if (isalpha (str[0]) && isdigit (str[1]) && isalpha (str[2])
       && isdigit (str[3])) {
@@ -320,38 +472,94 @@ void perft_debug (void) {
   }
 }
 
+void hash_extract_pv(int level)
+{
+  int dummy, bm;
+  move_s moves[MOVE_BUFF];
+  int num_moves;
+  char output[STR_BUFF];
+  
+  /* avoid loop on repetitions */
+  level--;
+  if (!level) return;
+  
+  if(ProbeTT(&dummy, 0, 0, &bm, &dummy, &dummy, 0) != HMISS)
+    {
+      gen(&moves[0]); 
+      num_moves = numb_moves;
+      if ((bm >= 0) && (bm <= num_moves))
+	{
+	  comp_to_coord(moves[bm], output);
+	  make(&moves[0], bm);
+	  if (check_legal(&moves[0], bm))
+	    {
+	      /* only print move AFTER legal check is done */
+	      printf("<%s> ", output);
+	      hash_extract_pv(level);
+	    }
+	  unmake(&moves[0], bm);
+	}
+    }
+}
 
 void post_thinking (long int score) {
 
   /* post our thinking output: */
 
-  int i;
+  int i, remake = 0;
   long int elapsed;
   char output[STR_BUFF];
+  int ep;
 
   /* in xboard mode, follow xboard conventions for thinking output, otherwise
      output the iterative depth, human readable score, and the pv */
 /*  if (xb_mode) {*/
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
-    for (i = 1; i < pv_length[1]; i++) {
-      comp_to_coord (pv[1][i], output);
-      printf ("%s ", output);
-    }
-    printf ("\n");
-/*  }
-  else {
-    if (score >= 0)
-      printf ("%d  %1.2f  ", i_depth, (float) score/100);
-    else
-      printf ("%d %1.2f  ", i_depth, (float) score/100);
-    for (i = 1; i < pv_length[1]; i++) {
-      comp_to_coord (pv[1][i], output);
-      printf ("%s ", output);
-    }
-    printf ("\n");
-  }*/
+	
+    ep = ep_square;
+    
+    /* if root move is already/still played, back it up */
+    /* 25-06-2000 our en passant info is unrecoverable here
+       so we cannot gen.... */
+    
+#ifdef BOGUS
+    printf("\n");
+    return;
+    
+    if (board[pv[1][1].from] == npiece)
+      {
+	printf("\n");
+	return;
+	
+	unmake(&pv[1][1], 0);
+	remake = 1;
+	ep_square = ugly_ep_hack;
+      }
+#endif
+    
+   for (i = 1; i < pv_length[1]; i++) {
+     comp_to_coord (pv[1][i], output);
+#ifdef BOGUS  
+     make(&pv[1][i], 0);
+#endif
+     printf ("%s ", output);
+   }
 
+#ifdef BOGUS   
+   hash_extract_pv(7);
+   
+   for (i = (pv_length[1]-1); i > 0; i--)
+     {	
+       unmake(&pv[1][i], 0);
+     }
+   if (remake)
+     make(&pv[1][1], 0);
+#endif   
+
+  ep_square = ep;
+
+  printf ("\n");
 }
 
 void post_fail_thinking(long int score, move_s *failmove)
@@ -366,8 +574,10 @@ void post_fail_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
+    /*unmake(failmove, 0);*/
     comp_to_coord (*failmove, output);
-    printf ("%s !!", output);
+    /*make(failmove, 0);*/
+    printf ("%s !", output);
     printf ("\n");
 }
 
@@ -382,8 +592,10 @@ void post_fh_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
+    /*unmake(failmove, 0);*/
     comp_to_coord (*failmove, output);
-    printf ("%s ++", output);
+    /*make(failmove, 0);*/
+    printf ("%s !!", output);
     printf ("\n");
 }
 
@@ -398,8 +610,10 @@ void post_fl_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
+    /*unmake(failmove, 0);*/
     comp_to_coord (*failmove, output);
-    printf ("%s --", output);
+    /*make(failmove, 0);*/
+    printf ("%s ??", output);
     printf ("\n");
 }
 
@@ -418,9 +632,9 @@ void print_move (move_s moves[], int m, FILE *stream) {
 
   /* print out a move */
 
-  char move[6];
+  char move[STR_BUFF];
 
-  comp_to_coord (moves[m], move);
+  comp_to_san (moves[m], move);
 
   fprintf (stream, "%s", move);
 
@@ -635,8 +849,8 @@ bool verify_coord (char input[], move_s *move) {
   bool legal = FALSE;
 
   ep_temp = ep_square;
-  num_moves = 0;
-  gen (&moves[0], &num_moves);
+  gen (&moves[0]); 
+  num_moves = numb_moves;
 
   /* compare user input to the generated moves: */
   for (i = 0; i < num_moves; i++) {
@@ -784,14 +998,14 @@ int interrupt(void)
   
 }
 
-void PutPiece(int color, char piece, char file, int rank)
+void PutPiece(int color, char piece, char pfile, int prank)
 {
   int converterf = (int) 'a';
   int converterr = (int) '1';
   int norm_file, norm_rank, norm_square;
 
-  norm_file = file - converterf;
-  norm_rank = rank - converterr;
+  norm_file = pfile - converterf;
+  norm_rank = prank - converterr;
 
   norm_square = ((norm_rank * 12) + 26) + (norm_file);
 
@@ -890,5 +1104,67 @@ void reset_board (void) {
   hand_eval = 0;
 
   reset_piece_square ();
+  
+}
+
+void speed_test(void)
+{
+  move_s moves[MOVE_BUFF];
+  int i, j, ep_temp;
+  clock_t cpu_start, cpu_end; 
+  float et;
+
+  ep_temp = ep_square;
+
+  cpu_start = clock ();
+
+  for (i = 0; i < 1000000; i++)
+    {
+      gen (&moves[0]);
+    }
+  
+  cpu_end = clock ();
+  et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+  
+  printf("Movegen speed: %d/s\n", (int)(1000000.0/et));
+  
+  j = 0;
+  
+  cpu_start = clock ();
+  
+  for (i = 0; i < 5000000; i++)
+    {
+      make (&moves[0], j);
+      unmake (&moves[0], j);
+      
+      if ((j+1) < numb_moves) j++;
+      else j = 0;
+    }
+  
+  cpu_end = clock ();
+  et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+  
+  printf("Make/unmake speed: %d/s\n", (int)(5000000.0/et));
+  
+  reset_ecache();
+  
+  cpu_start = clock ();
+  
+  for (i = 0; i < 1000000; i++)
+    {
+      eval();
+      /* invalidate the ecache */
+      hash = (hash++) % ULONG_MAX; 
+    }
+  
+  cpu_end = clock ();
+  et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
+  
+  printf("Eval speed: %d/s\n", (int)(1000000.0/et));
+  
+  /* restore the hash */
+  initialize_hash();
+  
+  ep_square = ep_temp;
   
 }

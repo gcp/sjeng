@@ -31,7 +31,7 @@ void display_board (FILE *stream, int color);
 long int end_eval (void);
 long int eval (void);
 long int seval(void);
-void gen (move_s moves[], int *num_moves);
+void gen (move_s moves[]);
 void ics_game_end (void);
 bool in_check (void);
 void init_game (void);
@@ -41,23 +41,25 @@ void make (move_s moves[], int i);
 void order_moves (move_s moves[], long int move_ordering[], int num_moves, int best);
 long int mid_eval (void);
 long int opn_eval (void);
+void check_phase(void);
 void perft (int depth);
+void speed_test(void);
 void perft_debug (void);
 void post_thinking (long int score);
 void post_fl_thinking (long int score, move_s *failmove);
 void post_fh_thinking (long int score, move_s *failmove);
 void post_fail_thinking(long int score, move_s *failmove);
 void print_move (move_s moves[], int m, FILE *stream);
-void push_king (move_s moves[], int *num_moves, int from, int target, 
+void push_king (move_s moves[], int from, int target, 
 		int castle_type);
-void push_pawn (move_s moves[], int *num_moves, int from, int target,
+void push_pawn (move_s moves[], int from, int target,
 	bool is_ep); 
-void push_knight (move_s moves[], int *num_moves, int from, int target);
+void push_knight (move_s moves[], int from, int target);
 
-void try_drop (move_s moves[], int *num_moves, int ptype, int target);
+void try_drop (move_s moves[], int ptype, int target);
 		
 
-void push_slide (move_s moves[], int *num_moves, int from, int target);
+void push_slide (move_s moves[], int from, int target);
 long int qsearch (int alpha, int beta, int depth);
 void rdelay (int time_in_s);
 long int rdifftime (rtime_t end, rtime_t start);
@@ -98,6 +100,7 @@ void storeECache(long int score);
 
 int init_book(void);
 move_s choose_book_move(void);
+move_s choose_binary_book_move(void);
 
 void StoreTT(int score, int alpha, int beta, int best, int threat, int depth);
 int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull, int depth);
@@ -125,5 +128,10 @@ void CheckBadFlow(bool reset);
 void run_epd_testsuite(void);
 
 void ResetHandValue(void);
+
+void build_book(void);
+void comp_to_san (move_s move, char str[]);
+
+void clear_tt(void);
 #endif
 

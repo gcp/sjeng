@@ -5,12 +5,11 @@ TODO
 6b. Reimplement hashtables (save move to avoid movegen ?)
 7. Check Internal iterative deepening (prolly not working)
 12a. BPGN support
-12b. Hashed opening book
 13. Prevent blocking of rooks at a8 in standard mode (cfr. crafty)
-14. Check whether bad trades are evaluated in Reggies code
 15. Just keep researching if dead
 16. Remove has_castled dependencies
 17. If partner tells +++ override alpha-beta with a special check
+20. Slit up movegen to do captures and normal moves seperately
 
 MAYBE
 
@@ -27,6 +26,8 @@ DONE
 1. Implement +piece commands
 2. Fix bugs in standard chess (pawn transformations)
 6a. Positional learning
+12b. Hashed opening bo
+14. Check whether bad trades are evaluated in Reggies code
 19. Make a decent makefile / use autoconfig etc...
 
 DIDN'T WORK

@@ -1,3 +1,16 @@
+Sjeng 7.3
+
+Faster move generation/Cleaner code
+Better handling of failed searches at root
+Binary book with transpositions
+Automatic bookbuilder
+Better time usage
+Built-in benchmark
+Partial support for SAN moves
+Improved evaluation, bad trade, drawn endgames
+Positional learning fixes
+Improved forward pruning in search
+
 Sjeng 7.2
 
 Fixed an out-of-bounds bug

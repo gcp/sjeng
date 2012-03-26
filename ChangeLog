@@ -1,3 +1,158 @@
+2000-07-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.3
+
+	* book.c: (choose_book_move): cleanups
+
+	* extvars.h: opening_history made larger
+
+	* epd.c (setup_epd_line): avoid use of 'rank'
+
+	* moves.c (add_move): added
+	(try_drop): use add_move
+	(push_*): use add_move
+
+	* search.c: (search): use original alpha when storing into TTable
+	(qsearch): no new best score if move was illegal
+	(search): no new best score if move was illegal
+	(search_root): handle fail-high cases immediately
+	(think): return immediately if we are going to be interrupted on
+	first call
+
+	* sjeng.h: no more bitfields for movedata (breaks GCC)
+
+	* utils.c: (post_*_thinking): reverted to comp_to_coord
+	(allocate_time): use more time if we have an increment
+
+	* newbook.c: (build_book) zh/bug book support
+	(choose_binary_book_move) zh/bug book support
+
+	* sjeng.c: (main): added 'speed' option
+
+	* utils.c: (speed_test): added
+	
+
+2000-07-03  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* utils.c (comp_to_san): use new movegen calling format
+	(init_game): reset phase
+	(hash_extract_pv): use new movegen calling format
+	(hash_extract_pv): indicate brokenness and ugly_ep_hack
+	(speed_test): added
+
+	* ttable.c (initialize_hash): set hold_hash (fixes learning)
+
+	* sjeng.h: changed some move structure data in bitfields for
+	-maybe- faster access
+
+	* ttable.c: (clear_tt): added
+
+	* sjeng.c: (main): call clear_tt on variant-switch
+	(main): 'book' and 'speed' commands added
+
+	* epd.c: (run_epd_testsuite): call clear_tt
+
+	* seval.c: changes to piece-square tables
+	(end_eval): keep piece counters
+	(end_eval): bad trade and drawn engame code
+	(end_eval): relocated king position bonusses
+	(end_eval): larger bonusses for passed pawns
+	(check_phase): added
+	(seval): use phase var rather than on-the-fly check
+	(mid_eval): keep piece counters
+	(mid_eval): bad trade code
+	(mid_eval): kingsafety bugfixes
+	(mid_eval): tweaked bonusses
+	(opn_eval): tweaked bonusses
+
+	* search.c: added ugly_ep_hack
+	(order_moves): ifdef'ed EXTRAKILLERS
+	(perft): updated for new movegen calling format
+	(qsearch): updated for new movegen calling format
+	(search): disable Extended Futility Pruning in endgames
+	(search): updated for new movegen calling format
+	(search): better(?) killer replacement code
+	(search_root): use ugly_ep_hack
+	(search_root): better killer replacement code
+	(search_root): update bestmovenum on fail-high
+	(think): use new book code
+	(think): update and print game phase
+	(think): removed bogus cpu_start update
+	(think): new fail-low handling code
+	(tree): use new movegen calling format
+	
+	* extvars.h: added phase, numb_moves, ugly_ep_hack
+
+	* partner.c (CheckBadFlow): adapted for new movegen calling format
+
+	* newbook.c: new file
+
+	* moves.c: (gen) changed calling sequence to eliminate num_moves
+	indirections
+	(try_drop): removed num_moves parameter
+	(push_king): removed num_moves parameter
+	(push_knight): removed num_moves parameter
+	(push_pawn): removed num_moves parameter
+	(push_slide): removed num_moves parameter
+
+	* book.c: (choose_book_move): do not fix first move for any variant
+	(choose_book_move): adapted for new movegen calling format
+
+2000-06-01  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* moves.c: (gen): use 'else if' for second case in ep move testing
+	(push_slide): use break instead of set/test
+	(try_drop): piece drop has always npiece captured
+
+2000-05-29  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* ttable.c: (initialize_hash): reset hash before rebuilding
+
+2000-05-28  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* search.c (search_root): time_failure only on no_moves
+	(think): use partial search results
+
+	* WAC, 486DX33 5sec: 176/300
+
+	* search.c (search): removed NDCuts/NDTries counting
+	(search): No nullmoves on the PV. This seems to increase tactical
+	awareness a bit as well as a few PV-backup problems.
+
+	* extvars.h: removed NDCuts/NDTries display
+
+	* sjeng.c (main): removed NDCuts/NDTries display
+
+	* epd.c: (run_epd_testsuite): use rinput rather than scanf
+	(run_epd_testsuite): removed NDCuts/NDTries display
+	use check_solution and print results
+	(check_solution): added
+
+2000-05-26  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* utils.c (post_fail_thinking) print ?? instead of --
+	removed some obsolete references to Faile
+	(comp_to_san): new function
+	(hash_extract_pv): new function
+	(post_thinking): use comp_to_san and hash_extract_pv
+	(post_fail_thinking): use comp_to_san
+	(post_fh_thinking): use comp_to_san
+	(post_fl_thiking): use comp_to_san
+
+2000-05-20  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* search.c: (search) disable nullmove if fewer than 14 pieces
+	(search): only use check extensions near leaves
+	(search): fixed: double queen and rook futility margins 
+	(search): razor first moves, except if PV
+	(search): removed DPVS
+
+	* search.c: (think) removed: printing of RS
+	(think): count researches and display on whisper
+	(think): only learn if depth is at least 3
+
+	* search.c: (qsearch) removed lazy evaluation
+
 2000-04-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.2
@@ -51,3 +206,12 @@
 
 	* Added automake/autoconf/autoheader/etc... support
 
+
+
+
+
+
+
+
+
+	

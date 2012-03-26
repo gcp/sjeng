@@ -14,3 +14,8 @@ KNOWN
 
 Trouble detecting variants and partner tells on chess.net. This is 
 an XBoard/WinBoard Zippy problem, not related to Sjeng itself.
+
+FIXED
+-----
+
+Always gives an error after running a testsuite. (Dann Corbit)

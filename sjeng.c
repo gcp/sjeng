@@ -24,21 +24,24 @@
 #include "sjeng.h"
 #include "protos.h"
 #include "extvars.h"
+#include "config.h"
 
 char divider[50] = "-------------------------------------------------";
-move_s dummy = {0,0,0,0,0,0,0,0};
+move_s dummy = {0,0,0,0,0};
 
 int board[144], moved[144], ep_square, white_to_move, comp_color, wking_loc,
   bking_loc, white_castled, black_castled, result, ply, pv_length[PV_BUFF],
   pieces[62], squares[144], num_pieces, i_depth;
 
 long int nodes, raw_nodes, qnodes, piece_count, killer_scores[PV_BUFF],
-  killer_scores2[PV_BUFF], moves_to_tc, min_per_game, inc, time_left,
-  opp_time, time_cushion, time_for_move, cur_score;
+  killer_scores2[PV_BUFF], killer_scores3[PV_BUFF], moves_to_tc, min_per_game,
+  inc, time_left, opp_time, time_cushion, time_for_move, cur_score;
 
 unsigned long history_h[144][144];
 
 bool xb_mode, captures, searching_pv, post, time_exit, time_failure;
+
+int phase;
 
 move_s pv[PV_BUFF][PV_BUFF], killer1[PV_BUFF], killer2[PV_BUFF],
  killer3[PV_BUFF];
@@ -47,7 +50,7 @@ rtime_t start_time;
 
 int is_promoted[62];
 
-int NTries, NCuts, NDTries, NDCuts, TExt;
+int NTries, NCuts, TExt;
 unsigned long DeltaTries, DeltaCuts;
 unsigned long PVS, FULL, PVSF;
 unsigned long ext_check;
@@ -125,6 +128,7 @@ int main (int argc, char *argv[]) {
   init_game ();
 
   initialize_hash();
+  clear_tt();
   ECacheProbes = 0;
   ECacheHits = 0;
   TTProbes = 0;
@@ -143,6 +147,7 @@ int main (int argc, char *argv[]) {
   must_sit = FALSE;
   go_fast = FALSE;
   fixed_time = FALSE;
+  phase = Opening;
 
   move_number = 0;
   memset(game_history, 0, sizeof(game_history));
@@ -178,7 +183,7 @@ int main (int argc, char *argv[]) {
 	    
 	    reset_piece_square ();
 	    
-	    if (book_ply < 20) {
+	    if (book_ply < 40) {
 	      if (!book_ply) {
 		strcpy(opening_history, output);
 	      }
@@ -210,8 +215,6 @@ int main (int argc, char *argv[]) {
 	    
 	    printf("NTries : %d  NCuts : %d  CutRate : %f%%  TExt: %d\n", 
 		   NTries, NCuts, (((float)NCuts*100)/((float)NTries+1)), TExt);
-	    printf("NDTries : %d  NDCuts : %d  DCutRate : %f%%\n", 
-		   NDTries, NDCuts, (((float)NDCuts*100)/((float)NDTries+1)));
 	    
 	    printf("DeltaTries : %d  DeltaCuts : %d  CutRate : %f%%\n",
 		   DeltaTries, DeltaCuts, 
@@ -222,7 +225,7 @@ int main (int argc, char *argv[]) {
 	    
 	    printf("Material score: %d   Eval : %d\n", Material, eval());
 	    
-	    /*printf("Hash : %X  HoldHash : %X\n", hash, hold_hash);*/
+	    printf("Hash : %X  HoldHash : %X\n", hash, hold_hash);
 
 	    /*printf("Average moves: %f\n", (float)total_moves/(float)total_movegens);*/
 
@@ -305,16 +308,16 @@ int main (int argc, char *argv[]) {
 	ep_squares[move_number++] = ep_square;
 	make (&move, 0);
 	reset_piece_square ();
-
-      if (book_ply < 20) {
-         if (!book_ply) {
-         strcpy(opening_history, input);
-         }
-         else {
-         strcat(opening_history, input);
+	
+	if (book_ply < 40) {
+	  if (!book_ply) {
+	    strcpy(opening_history, input);
+	  }
+	  else {
+	    strcat(opening_history, input);
+	  }
         }
-        }
-
+	
 	book_ply++;
 	
 	if (show_board) {
@@ -363,7 +366,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-4-22)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2000-7-22)\n");
 	  }
 
 	if (!is_analyzing)
@@ -376,8 +379,10 @@ int main (int argc, char *argv[]) {
 
 	  init_game ();
 	  initialize_hash();
+	  clear_tt();
 	  init_book();
-	  
+	  reset_ecache();	
+  
 	  force_mode = FALSE;
 	  must_sit = FALSE;
 	  go_fast = FALSE;
@@ -501,6 +506,7 @@ int main (int argc, char *argv[]) {
 	  }
 	
 	initialize_hash();
+	clear_tt();
 	reset_ecache();
 
       }
@@ -542,6 +548,7 @@ int main (int argc, char *argv[]) {
 	ep_square = 0;
 	move_number = 0;
 	memset(opening_history, 0, sizeof(opening_history));
+	clear_tt();
 	initialize_hash();
 	reset_piece_square();
       }
@@ -569,6 +576,12 @@ int main (int argc, char *argv[]) {
       }
       else if (!strncmp (input, "st", 2)) {
 	sscanf(input+3, "%d", &fixed_time); 
+      }
+      else if (!strncmp (input, "book", 4)) {
+	build_book();
+      }
+      else if (!strncmp (input, "speed",  5)) {
+	speed_test();
       }
       else if (!strncmp (input, "warranty", 8)) {
 	  printf("\n  BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY\n"
@@ -622,8 +635,9 @@ int main (int argc, char *argv[]) {
 	printf ("post:         toggles thinking output\n");
 	printf ("xboard:       put Sjeng into xboard mode\n");
 	printf ("test:         run an EPD testsuite\n");
+	printf ("speed:        test movegen and evaluation speed\n");
 	printf ("warranty:     show warranty details\n");
-        printf ("distribution: show distribution details\n");
+    printf ("distribution: show distribution details\n");
 	printf ("\n%s\n\n", divider);
       }
       else if (!xb_mode) {

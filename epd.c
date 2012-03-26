@@ -28,7 +28,7 @@
 void setup_epd_line(char* inbuff)
 {
   int i = 0;
-  int rank = 0;   // a8
+  int rankp = 0;   // a8
   int rankoffset = 0;
   int fileoffset = 0;
   int j;
@@ -54,7 +54,7 @@ void setup_epd_line(char* inbuff)
   white_castled = no_castle;
   black_castled = no_castle;
 
-  book_ply = 30;
+  book_ply = 50;
 
   rankoffset = rankoffsets[0];
 
@@ -69,8 +69,8 @@ void setup_epd_line(char* inbuff)
 	}
       else if (stage == 0 && inbuff[i] == '/')
 	{
-	  rank++;
-	  rankoffset = rankoffsets[rank];	
+	  rankp++;
+	  rankoffset = rankoffsets[rankp];	
 	  fileoffset = 0;
 	}
       else if (stage == 0 && isalpha(inbuff[i]))
@@ -185,20 +185,50 @@ void setup_epd_line(char* inbuff)
 
 }
 
+int check_solution(char *inbuff, move_s cmove)
+{
+  char san[STR_BUFF];
+  
+  comp_to_san(cmove, san);
+  
+  if (strstr(inbuff, "bm") != NULL)
+    {
+      if (strstr(inbuff, san) != NULL)
+	return TRUE;
+      else
+	return FALSE;
+    }
+  else if (strstr(inbuff, "am") != NULL)
+    {
+      if (strstr(inbuff, san) != NULL)
+	return FALSE;
+      else
+	return TRUE;
+    }
+  else
+    printf("No best-move or avoid-move found!");
+}
+
 void run_epd_testsuite(void)
 {
   FILE *testsuite;
   char readbuff[2000];
-  char testname[100];
+  char testname[STR_BUFF];
   int elapsed, nps;
   long thinktime;
-  
+	move_s comp_move;
+  int tested, found;
+	
   clock_t cpu_start, cpu_end;
-
+  
+  tested = 0;
+  found = 0;
+  
   printf("\nName of EPD testsuite: ");
-  scanf("%s", &testname);
+  rinput(testname, STR_BUFF, stdin);
   printf("\nTime per move (s): ");
-  scanf("%ld", &thinktime);
+  rinput(readbuff, STR_BUFF, stdin);
+	thinktime = atol(readbuff);
   printf("\n");
 
   thinktime *= 100;
@@ -207,16 +237,19 @@ void run_epd_testsuite(void)
 
   while (fgets(readbuff, 2000, testsuite) != NULL)
     {
+      tested++;
+			
       setup_epd_line(readbuff);
       
+      clear_tt();
       initialize_hash();
-
-      display_board(stdout, 1);
+      
+      display_board(stdout, 1); 
       
       fixed_time = thinktime;
       
       cpu_start = clock();
-      think();
+      comp_move = think();
       cpu_end = clock();
       
       printf ("\nNodes: %ld (%0.2f%% qnodes)\n", nodes,
@@ -240,8 +273,6 @@ void run_epd_testsuite(void)
       
       printf("NTries : %d  NCuts : %d  CutRate : %f%%  TExt: %d\n", 
 	     NTries, NCuts, (((float)NCuts*100)/((float)NTries+1)), TExt);
-      printf("NDTries : %d  NDCuts : %d  DCutRate : %f%%\n", 
-	     NDTries, NDCuts, (((float)NDCuts*100)/((float)NDTries+1)));
       
       printf("DeltaTries : %d  DeltaCuts : %d  CutRate : %f%%\n",
 	     DeltaTries, DeltaCuts, 
@@ -251,7 +282,20 @@ void run_epd_testsuite(void)
       printf("Move ordering : %f%%\n", (((float)FHF*100)/(float)FH+1));
       
       printf("Material score: %d   Eval : %d\n", Material, eval());
+      printf("\n");
       
+      if(check_solution(readbuff, comp_move))
+	{
+	  found++;
+	  printf("Solution found.\n");
+	}
+      else
+	{
+	  printf("Solution not found.\n");
+	}
+      
+      printf("Solved: %d/%d\n", found, tested);
     };
-  
+  printf("\n");
 };
+

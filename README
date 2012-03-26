@@ -43,6 +43,10 @@ How do I get it to work ?
     of gcc that doesn't recognize the '-mpentiumpro' flag,
     you can safely remove it.
 
+    If you notice Sjeng is only reporting time in full second
+    increments, edit config.h and change #define HAVE_FTIME
+    into #undef HAVE_FTIME.
+
     Windows
     -------
 
@@ -54,7 +58,7 @@ How do I get it to work ?
     
     #define HAVE_SYS_TIMEB_H
     #define HAVE_FTIME
-    #define VERSION "7.0"
+    #define VERSION "7.3"
 
     You may have to define _WIN32 also.
 
@@ -75,14 +79,47 @@ How do I get it to work ?
  directory, because otherwise it will not be able to find its 
  opening books and it will not learn from the games it plays.
 
+ NEW!
+
+ From release 7.3 onwards Sjeng has an automatic bookbuilder
+ which can use PGN databases to generate an opening book.
+
+ To use it, just start Sjeng and enter 'book'. To generate
+ a crazyhouse/bughouse book, first type 'variant crazyhouse',
+ then type 'book'. Be sure to make the keycache large enough
+ or the book-generation will be slow and you will end up with
+ very large files.
+
+ You must use a pure PGN database. PGN derivates like BPGN
+ are not (yet) supported, nor is the psuedo-PGN that some 
+ other programs output. 
+
+ I recommend running your PGN database through the 'Extract' 
+ program by David Barnes first. It has options to strip 
+ variantions, comments and NAG's and to suppress duplicates
+ which will significantly speed up the bookbuilding process,
+ as well as getting rid of any psuedo-SAN.
+
+ The binary books (.bin files) are NOT exchangable between
+ operating systems. You cannot mix a Windows-built book with 
+ a Unix-running Sjeng.
+
+ The new .bin files can be used alongside the old .opn files.
+ Sjeng will first look for an opening in the .opn files, and
+ if nothing is found, it will look in the .bin files.
+
+ If the PGN database you used to generate the new book is large
+ enough (more than a thousand positions) it is probably better
+ to just delete the old .opn files.
+
  Getting an interface
  --------------------
 
  You can start Sjeng now by typing 'sjeng', but you will probably
  find the text-based interface unpleasant.
 
- The recommended interface for playing with Sjeng is 
- WinBoard/XBoard, by Tim Mann.
+ The recommended interface for playing standard chess with Sjeng 
+ is WinBoard/XBoard, by Tim Mann.
 
  http://www.research.digital.com/SRC/personal/mann/xboard.html
 
@@ -90,6 +127,15 @@ How do I get it to work ?
  play bughouse or crazyhouse, only standard chess. The Zippy
  interface (the part that connects to the chess servers) built 
  into WinBoard/XBoard *does* support bughouse and crazyhouse though.
+
+ Zon Juan Jan wrote a Windows interface for crazyhouse-playing
+ programs that can be used with Sjeng. Go to
+ 
+ http://bughouse.net
+
+ and look in the downloads section. The program is called 
+ Zhouse Challenger. It works nicely and I can recommend
+ it a lot!
 
  Vassili Sukharev told me he was extending his bughouse-database
  program to work with Sjeng. His homepage is at:
@@ -110,6 +156,23 @@ If you use Sjeng to play bughouse, you can do the same
 with ECACHESIZE in ecache.c. This is not so imporant
 as TTSIZE is.
 
+Benchmarking
+------------
+
+As a little test of your computer's speed, you can start
+Sjeng and give the 'speed' command. This will run a little
+benchmark of the most commonly-used functions in Sjeng.
+Note that TTSIZE and ECACHESIZE will (should) not affect
+the benchmark numbers.
+
+Running testsuites
+------------------
+
+Sjeng can automatically run testsuites by use of the 'test'
+command. Input data is expected to be in EPD format with
+either a 'best move' (bm) or 'avoid move' (am) tag. 
+Some testsuites are included in the 'tests' directory of the
+Sjeng distribution.
 
 Getting more info
 -----------------

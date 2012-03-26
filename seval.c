@@ -33,8 +33,8 @@ static int sbishop[144] = {
 0,0,-5,-5,-5,-5,-5,-5,-5,-5,0,0,
 0,0,-5,10,5,10,10,5,10,-5,0,0,
 0,0,-5,5,3,10,10,3,5,-5,0,0,
-0,0,-5,3,10,3,3,10,3,-5,0,0,
-0,0,-5,3,10,3,3,10,3,-5,0,0,
+0,0,-5,3,10,6,6,10,3,-5,0,0,
+0,0,-5,3,10,6,6,10,3,-5,0,0,
 0,0,-5,5,3,10,10,3,5,-5,0,0,
 0,0,-5,10,5,10,10,5,10,-5,0,0,
 0,0,-5,-5,-5,-5,-5,-5,-5,-5,0,0,
@@ -87,7 +87,7 @@ static int sblack_pawn[144] = {
 static int swhite_king[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,2,10,4,0,0,7,10,2,0,0,
+0,0,2,14,0,0,0,9,14,2,0,0,
 0,0,-3,-3,-5,-5,-5,-5,-3,-3,0,0,
 0,0,-5,-5,-8,-8,-8,-8,-5,-5,0,0,
 0,0,-8,-8,-13,-13,-13,-13,-8,-8,0,0,
@@ -109,7 +109,7 @@ static int sblack_king[144] = {
 0,0,-8,-8,-13,-13,-13,-13,-8,-8,0,0,
 0,0,-5,-5,-8,-8,-8,-8,-5,-5,0,0,
 0,0,-3,-3,-5,-5,-5,-5,-3,-3,0,0,
-0,0,2,10,4,0,0,7,10,2,0,0,
+0,0,2,14,0,0,0,9,14,2,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -118,12 +118,12 @@ static int send_king[144] = {
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,-5,-3,-1,0,0,-1,-3,-5,0,0,
-0,0,-3,5,5,5,5,5,5,-3,0,0,
-0,0,-1,5,10,10,10,10,5,-1,0,0,
-0,0,0,5,10,15,15,10,5,0,0,0,
-0,0,0,5,10,15,15,10,5,0,0,0,
-0,0,-1,5,10,10,10,10,5,-1,0,0,
-0,0,-3,5,5,5,5,5,5,-3,0,0,
+0,0,-3,10,10,10,10,10,10,-3,0,0,
+0,0,-1,10,25,25,25,25,10,-1,0,0,
+0,0,0,10,25,30,30,25,10,0,0,0,
+0,0,0,10,25,30,30,25,10,0,0,0,
+0,0,-1,10,25,25,25,25,10,-1,0,0,
+0,0,-3,10,10,10,10,10,-3,0,0,
 0,0,-5,-3,-1,0,0,-1,-3,-5,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0};
@@ -141,6 +141,20 @@ long int end_eval (void) {
     srank, j;
   long int score = 0;
   bool isolated, backwards;
+  int in_cache;
+  int wp = 0, bp = 0, wn = 0, bn = 0, wb = 0, bb = 0,
+    wq = 0, bq = 0, wr = 0, br = 0;
+
+  in_cache = 0;
+  
+  checkECache(&score, &in_cache);
+  
+  if(in_cache)
+    {
+      if (white_to_move == 1) return score;
+      return -score;
+    }
+
 
   /* initialize the pawns array, (files offset by one to use dummy files in
      order to easier determine isolated status) and also initialize the
@@ -194,6 +208,7 @@ long int end_eval (void) {
 	backwards = FALSE;
 	score += 100;
 	score += swhite_pawn[i];
+	wp++;
 
 	/* in general, bonuses/penalties in the endgame evaluation will be
 	   higher, since pawn structure becomes more important for the
@@ -227,7 +242,7 @@ long int end_eval (void) {
 	   pawns are what wins the endgame): */
 	if (!pawns[0][pawn_file] && srank >= black_back_pawn[pawn_file-1] &&
 	    srank >= black_back_pawn[pawn_file+1]) {
-	  score += 3*swhite_pawn[i];
+	  score += 20 + 3*swhite_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score += 18;
@@ -240,6 +255,7 @@ long int end_eval (void) {
 	backwards = FALSE;
 	score -= 100;
 	score -= sblack_pawn[i];
+	bp++;
 
 	/* in general, bonuses/penalties in the endgame evaluation will be
 	   higher, since pawn structure becomes more important for the
@@ -273,7 +289,7 @@ long int end_eval (void) {
 	   pawns are what wins the endgame): */
 	if (!pawns[1][pawn_file] && srank <= white_back_pawn[pawn_file-1] &&
 	    srank <= white_back_pawn[pawn_file+1]) {
-	  score -= 3*sblack_pawn[i];
+	  score -= 20 + 3*sblack_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score -= 18;
@@ -283,6 +299,7 @@ long int end_eval (void) {
 
       case (wrook):
 	score += 500;
+	wr++;
 	
 	/* bonus for being on the 7th (a bit bigger bonus in the endgame, b/c
 	   a rook on the 7th can be a killer in the endgame): */
@@ -303,6 +320,7 @@ long int end_eval (void) {
 
       case (brook):
 	score -= 500;
+	br++;
 
 	/* bonus for being on the 7th (a bit bigger bonus in the endgame, b/c
 	   a rook on the 7th can be a killer in the endgame): */
@@ -324,47 +342,185 @@ long int end_eval (void) {
       case (wbishop):
 	score += 325;
 	score += sbishop[i];
+	wb++;
 	break;
 
       case (bbishop):
 	score -= 325;
 	score -= sbishop[i];
+	bb++;
 	break;
 
       case (wknight):
 	score += 310;
 	score += sknight[i];
+	wn++;
 	break;
 
       case (bknight):
 	score -= 310;
 	score -= sknight[i];
+	bn++;
 	break;
 
       case (wqueen):
 	score += 900;
+	wq++;
 	break;
 
       case (bqueen):
 	score -= 900;
-	break;
-
-      case (wking):
-	/* the king is safe to come out in the endgame, so we don't check for
-	   king safety anymore, and encourage centralization of the king */
-	score += send_king[i];
-	break;
-
-      case (bking):
-	/* the king is safe to come out in the endgame, so we don't check for
-	   king safety anymore, and encourage centralization of the king */
-	score -= send_king[i];
+	bq++;
 	break;
     }
   }
 
+  /* some static knowledge about drawn endgames */
+
+ /* no more pawns */
+  if (!wp && !bp)
+    {
+      /* nor heavies */
+      if (!wr && !br && !wq && !bq)
+	{
+	  if (!bb && !wb)
+	    {
+	      /* only knights */
+	      /* it pretty safe to say this is a draw */
+	      if (wn < 3 && bn < 3)
+		{
+		  score = 0;
+		}
+	    }
+	  else if (!wn && !bn)
+	    {
+	      /* only bishops */
+	      /* not a draw if one side two other side zero
+		 else its always a draw                     */
+	      if (abs(wb - bb) < 2)
+		{
+		  score = 0;
+		}
+	    }
+	  else if ((wn < 3 && !wb) || (wb == 1 && !wn))
+	    {
+	      /* we cant win, but can black? */
+	      if ((bn < 3 && !bb) || (bb == 1 && !bn))
+		{
+		  /* guess not */
+		  score = 0;
+		}
+	    }
+	}
+      else if (!wq && !bq)
+	{
+	  if (wr == 1 && br == 1)
+	    {
+	      /* rooks equal */
+	      if ((wn + wb) < 2 && (bn + bb) < 2)	
+		{
+		  /* one minor difference max */
+		  /* a draw too usually */
+		  score = 0;
+		}
+	    }
+	  else if (wr == 1 && !br)
+	    {
+	      /* one rook */
+	      /* draw if no minors to support AND
+		 minors to defend  */
+	      if ((wn + wb == 0) && (((bn + bb) == 1) || ((bn + bb) == 2)))
+		{
+		  score = 0;
+		}
+	    }
+	  else if (br == 1 && !wr)
+	    {
+	      /* one rook */
+	      /* draw if no minors to support AND
+		 minors to defend  */
+	      if ((bn + bb == 0) && (((wn + wb) == 1) || ((wn + wb) == 2)))
+		{
+		  score = 0;
+		}
+	    }
+	}
+    }
+  else
+    {
+      /* bad trade code, largely based on Crafty's */
+      /* minors are not equal */
+      if ((wn + wb) != (bn + bb))  
+	{
+	  /* majors are equal */
+	  if ((wq + wr) == (bq + br))
+	    {
+	      if ((wn + wb) > (bn + bb))
+		{
+		  /* white is a piece up */
+		  score += 120;
+		}
+	      else
+		{
+		  /* black is a piece up */
+		  score -= 120;
+		}
+	    }
+	  else if (abs((wr + wq) - (br + bq)) == 1)
+	    {
+	      /* one major difference */
+	      
+	      if ((wb + wn) > (bb + bn + 1))
+		{
+		  /* two minors for one major */
+		  score += 120;
+		}
+	      else if ((bb + bn) > (wb + wn + 1))
+		{
+		  score -= 120;
+		}
+	    }
+	  else if (abs((wr + wq) - (br + bq)) == 2)
+	    {	
+	      /* two majors difference */
+	      
+	      if ((wb + wn) > (bb + bn + 2))
+		{
+		  /* three minors for two majors */
+		  score += 120;
+		}
+	      else if ((bb + bn) > (wb + wn + 2))
+		{
+		  score -= 120;
+		}
+	      
+	    }
+	}
+      else if ((wq + wr) == (bq + br))
+	{
+	  if (wq && !bq) 
+	    {
+	      score += 120;
+	    }
+	  else if (!wq && bq)
+	    {
+	      score -= 120;
+	    }
+	}
+    }
+  
+  /* the king is safe to come out in the endgame, so we don't check for
+     king safety anymore, and encourage centralization of the king */
+  score += send_king[wking_loc];
+  
+  /* the king is safe to come out in the endgame, so we don't check for
+     king safety anymore, and encourage centralization of the king */
+  score -= send_king[bking_loc];
+  
   /* the e/d pawn blockage is not relevant in the endgame, and we don't need
      to check for king safety due to pawn storms / heavy piece infiltration */
+  
+  storeECache(score);
 
   /* adjust for color: */
   if (white_to_move == 1) {
@@ -376,15 +532,51 @@ long int end_eval (void) {
 
 }
 
+void check_phase(void)
+{
+  int num_pieces = 0;
+  int j, a, i;
+
+  for (j = 1, a = 1; (a <= piece_count); j++) 
+    {
+      i = pieces[j];
+      
+      if (!i)
+	continue;
+      else
+	a++;
+      
+      if (board[i] != wpawn && board[i] != bpawn &&
+	  board[i] != npiece && board[i] != frame) 
+	{
+	  num_pieces++;
+	}
+    };
+  if ((num_pieces > 11) 
+      /* not both have castled */
+      && (!white_castled || !black_castled) 
+      /* no both lost castling priveledges */
+      && (board[30] == wking || board[114] == bking)) 
+    {
+      phase = Opening;
+    }
+  else if (num_pieces < 7) 
+    {
+      phase = Endgame;
+    }
+  else 
+    phase = Middlegame;
+  
+}
 
 long int seval (void) {
 
   /* select the appropriate eval() routine: */
 
-  if (piece_count > 20) {
+  if (phase == Opening) {
     return (opn_eval ());
   }
-  else if (piece_count < 10) {
+  else if (phase == Endgame) {
     return (end_eval ());
   }
   else {
@@ -402,6 +594,19 @@ long int mid_eval (void) {
     srank, wking_pawn_file, bking_pawn_file, j;
   long int score = 0;
   bool isolated, backwards;
+  int in_cache;
+  int wp = 0, bp = 0, wn = 0, bn = 0, wb = 0, bb = 0,
+	  wq = 0, bq = 0, wr = 0, br = 0;
+
+  in_cache = 0;
+  
+  checkECache(&score, &in_cache);
+  
+  if(in_cache)
+    {
+      if (white_to_move == 1) return score;
+      return -score;
+    }
 
   /* initialize the pawns array, (files offset by one to use dummy files in
      order to easier determine isolated status) and also initialize the
@@ -455,6 +660,7 @@ long int mid_eval (void) {
 	backwards = FALSE;
 	score += 100;
 	score += swhite_pawn[i];
+	wp++;
 
 	/* check for backwards pawns: */
 	if (white_back_pawn[pawn_file+1] > srank
@@ -481,7 +687,7 @@ long int mid_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[0][pawn_file] && srank >= black_back_pawn[pawn_file-1] &&
 	    srank >= black_back_pawn[pawn_file+1]) {
-	  score += 2*swhite_pawn[i];
+	  score += 10 + 2*swhite_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score += 15;
@@ -494,6 +700,7 @@ long int mid_eval (void) {
 	backwards = FALSE;
 	score -= 100;
 	score -= sblack_pawn[i];
+	bp++;
 
 	/* check for backwards pawns: */
 	if (black_back_pawn[pawn_file+1] < srank
@@ -520,7 +727,7 @@ long int mid_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[1][pawn_file] && srank <= white_back_pawn[pawn_file-1] &&
 	    srank <= white_back_pawn[pawn_file+1]) {
-	  score -= 2*sblack_pawn[i];
+	  score -= 10 + 2*sblack_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score -= 15;
@@ -530,6 +737,7 @@ long int mid_eval (void) {
 
       case (wrook):
 	score += 500;
+	wr++;
 	
 	/* bonus for being on the 7th: */
 	if (srank == 7)
@@ -549,6 +757,7 @@ long int mid_eval (void) {
 
       case (brook):
 	score -= 500;
+	br++;
 
 	/* bonus for being on the 7th: */
 	if (srank == 2)
@@ -569,29 +778,35 @@ long int mid_eval (void) {
       case (wbishop):
 	score += 325;
 	score += sbishop[i];
+	wb++;
 	break;
 
       case (bbishop):
 	score -= 325;
 	score -= sbishop[i];
+	bb++;
 	break;
 
       case (wknight):
 	score += 310;
 	score += sknight[i];
+	wn++;
 	break;
 
       case (bknight):
 	score -= 310;
 	score -= sknight[i];
+	bn++;
 	break;
 
       case (wqueen):
 	score += 900;
+	wq++;
 	break;
 
       case (bqueen):
 	score -= 900;
+	bq++;
 	break;
 
       case (wking):
@@ -613,18 +828,18 @@ long int mid_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
-	if (srank < white_back_pawn[pawn_file])
-	  score -= 4*(white_back_pawn[pawn_file]-srank-1);
+	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
+	  score -= 8*(white_back_pawn[pawn_file]-srank-1);
 	else
-	  score -= 8;
-	if (srank < white_back_pawn[pawn_file+1])
-	  score -= 4*(white_back_pawn[pawn_file+1]-srank-1);
+	  score -= 16;
+	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
+	  score -= 8*(white_back_pawn[pawn_file+1]-srank-1);
 	else
-	  score -= 8;
-	if (srank < white_back_pawn[pawn_file-1])
-	  score -= 4*(white_back_pawn[pawn_file-1]-srank-1);
+	  score -= 16;
+	if (srank < white_back_pawn[pawn_file-1] && pawns[1][pawn_file-1])
+	  score -= 8*(white_back_pawn[pawn_file-1]-srank-1);
 	else
-	  score -= 8;	  
+	  score -= 16;	  
 
 	break;
 
@@ -647,18 +862,18 @@ long int mid_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
-	if (srank > black_back_pawn[pawn_file])
-	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
+	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
+	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
-	  score += 8;
-	if (srank > black_back_pawn[pawn_file+1])
-	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
+	  score += 16;
+	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])
+	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
 	else
-	  score += 8;
-	if (srank > black_back_pawn[pawn_file-1])
-	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
+	  score += 16;
+	if (srank > black_back_pawn[pawn_file-1] && pawns[0][pawn_file-1])
+	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
 	else
-	  score += 8;
+	  score += 16;
 
 	break;
     }
@@ -683,14 +898,14 @@ long int mid_eval (void) {
   if ((wking_pawn_file-bking_pawn_file) > 2 ||
       (bking_pawn_file-wking_pawn_file) > 2) {
     /* black pawn storms: */
-    score -= 2*srev_rank[black_back_pawn[wking_pawn_file]];
-    score -= 2*srev_rank[black_back_pawn[wking_pawn_file+1]];
-    score -= 2*srev_rank[black_back_pawn[wking_pawn_file-1]];
+    score -= 3*(srev_rank[black_back_pawn[wking_pawn_file]]-2);
+    score -= 3*(srev_rank[black_back_pawn[wking_pawn_file+1]]-2);
+    score -= 3*(srev_rank[black_back_pawn[wking_pawn_file-1]]-2);
 
     /* white pawn storms: */
-    score += 2*white_back_pawn[bking_pawn_file];
-    score += 2*white_back_pawn[bking_pawn_file+1];
-    score += 2*white_back_pawn[bking_pawn_file-1];
+    score += 3*(white_back_pawn[bking_pawn_file]-2);
+    score += 3*(white_back_pawn[bking_pawn_file+1]-2);
+    score += 3*(white_back_pawn[bking_pawn_file-1]-2);
 
     /* black opening up lines: */
     if (!pawns[0][wking_pawn_file])
@@ -710,6 +925,69 @@ long int mid_eval (void) {
 
   }
 
+  /* bad trade code, largely based on Crafty's */
+
+  /* minors are not equal */
+  if ((wn + wb) != (bn + bb))  
+    {
+      /* majors are equal */
+      if ((wq + wr) == (bq + br))
+	{
+	  if ((wn + wb) > (bn + bb))
+	    {
+	      /* white is a piece up */
+	      score += 120;
+	    }
+	  else
+	    {
+	      /* black is a piece up */
+	      score -= 120;
+	    }
+	}
+      else if (abs((wr + wq) - (br + bq)) == 1)
+	{
+	  /* one major difference */
+	  
+	  if ((wb + wn) > (bb + bn + 1))
+	    {
+	      /* two minors for one major */
+	      score += 120;
+	    }
+	  else if ((bb + bn) > (wb + wn + 1))
+	    {
+	      score -= 120;
+	    }
+	}
+      else if (abs((wr + wq) - (br + bq)) == 2)
+	{	
+	  /* two majors difference */
+	  
+	  if ((wb + wn) > (bb + bn + 2))
+	    {
+	      /* three minors for two majors */
+	      score += 120;
+	    }
+	  else if ((bb + bn) > (wb + wn + 2))
+	    {
+	      score -= 120;
+	    }
+	  
+	}
+    }
+  else if ((wq + wr) == (bq + br))
+    {
+      if (wq && !bq) 
+	{
+	  score += 120;
+	}
+      else if (!wq && bq)
+	{
+	  score -= 120;
+	}
+    }
+  
+  storeECache(score);
+  
   /* adjust for color: */
   if (white_to_move == 1) {
     return score;
@@ -728,6 +1006,17 @@ long int opn_eval (void) {
     srank, wking_pawn_file, bking_pawn_file, j;
   long int score = 0;
   bool isolated, backwards;
+  int in_cache;
+
+  in_cache = 0;
+  
+  checkECache(&score, &in_cache);
+  
+  if(in_cache)
+    {
+      if (white_to_move == 1) return score;
+      return -score;
+    }
 
   /* initialize the pawns array, (files offset by one to use dummy files in
      order to easier determine isolated status) and also initialize the
@@ -813,7 +1102,7 @@ long int opn_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[0][pawn_file] && srank >= black_back_pawn[pawn_file-1] &&
 	    srank >= black_back_pawn[pawn_file+1]) {
-	  score += swhite_pawn[i];
+	  score += 5 + 2*swhite_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score += 10;
@@ -858,7 +1147,7 @@ long int opn_eval (void) {
 	/* give bonuses for passed pawns: */
 	if (!pawns[1][pawn_file] && srank <= white_back_pawn[pawn_file-1] &&
 	    srank <= white_back_pawn[pawn_file+1]) {
-	  score -= sblack_pawn[i];
+	  score -= 5 + 2*sblack_pawn[i];
 	  /* give an extra bonus if a connected, passed pawn: */
 	  if (!isolated)
 	    score -= 10;
@@ -954,7 +1243,7 @@ long int opn_eval (void) {
 	if (white_castled)
 	  score += 20;
 	else if (moved[30]) {
-	  score -= 7;
+	  score -= 15;
 	  /* make the penalty bigger if the king is open, leaving the other
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
@@ -968,16 +1257,16 @@ long int opn_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
-	if (srank < white_back_pawn[pawn_file])
-	  score -= 2*(white_back_pawn[pawn_file]-srank-1);
+	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
+	  score -= 5*(white_back_pawn[pawn_file]-srank-1);
 	else
 	  score -= 8;
-	if (srank < white_back_pawn[pawn_file+1])
-	  score -= 2*(white_back_pawn[pawn_file+1]-srank-1);
+	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
+	  score -= 4*(white_back_pawn[pawn_file+1]-srank-1);
 	else
 	  score -= 8;
-	if (srank < white_back_pawn[pawn_file-1])
-	  score -= 2*(white_back_pawn[pawn_file-1]-srank-1);
+	if (srank < white_back_pawn[pawn_file-1] && pawns[1][pawn_file-1])
+	  score -= 4*(white_back_pawn[pawn_file-1]-srank-1);
 	else
 	  score -= 8;	  
 
@@ -991,7 +1280,7 @@ long int opn_eval (void) {
 	if (black_castled)
 	  score -= 20;
 	else if (moved[114]) {
-	  score += 7;
+	  score += 15;
 	  /* make the penalty bigger if the king is open, leaving the other
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
@@ -1005,16 +1294,16 @@ long int opn_eval (void) {
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
-	if (srank > black_back_pawn[pawn_file])
-	  score += 2*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
+	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
+	  score += 5*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
 	  score += 8;
-	if (srank > black_back_pawn[pawn_file+1])
-	  score += 2*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
+	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])
+	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file+1]-1]);
 	else
 	  score += 8;
-	if (srank > black_back_pawn[pawn_file-1])
-	  score += 2*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
+	if (srank > black_back_pawn[pawn_file-1] && pawns[0][pawn_file-1])
+	  score += 4*(srev_rank[srank-black_back_pawn[pawn_file-1]-1]);
 	else
 	  score += 8;
 
@@ -1044,14 +1333,14 @@ long int opn_eval (void) {
   if ((wking_pawn_file-bking_pawn_file) > 2 ||
       (bking_pawn_file-wking_pawn_file) > 2) {
     /* black pawn storms: */
-    score -= srev_rank[black_back_pawn[wking_pawn_file]];
-    score -= srev_rank[black_back_pawn[wking_pawn_file+1]];
-    score -= srev_rank[black_back_pawn[wking_pawn_file-1]];
+    score -= srev_rank[black_back_pawn[wking_pawn_file]] - 2;
+    score -= srev_rank[black_back_pawn[wking_pawn_file+1]] - 2;
+    score -= srev_rank[black_back_pawn[wking_pawn_file-1]] - 2;
 
     /* white pawn storms: */
-    score += white_back_pawn[bking_pawn_file];
-    score += white_back_pawn[bking_pawn_file+1];
-    score += white_back_pawn[bking_pawn_file-1];
+    score += white_back_pawn[bking_pawn_file] - 2;
+    score += white_back_pawn[bking_pawn_file+1] - 2;
+    score += white_back_pawn[bking_pawn_file-1] - 2;
 
     /* black opening up lines: */
     if (!pawns[0][wking_pawn_file])
@@ -1071,6 +1360,8 @@ long int opn_eval (void) {
 
   }
 
+  storeECache(score);
+  
   /* adjust for color: */
   if (white_to_move == 1) {
     return score;

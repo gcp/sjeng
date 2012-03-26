@@ -21,8 +21,8 @@
 
 */
 
-#ifndef FAILE_H
-#define FAILE_H
+#ifndef SJENG_H
+#define SJENG_H
 
 #include "config.h"
 #include <ctype.h>
@@ -55,6 +55,10 @@
 #define Bughouse 1
 #define Normal 2
 
+#define Opening      0
+#define Middlegame   1
+#define Endgame      2
+
 #define maxdepth 30
 #define mindepth 2
 
@@ -74,13 +78,6 @@
 #define bbishop 12
 #define npiece  13
 
-/* castle flags: */
-#define no_castle  0
-#define wck        1
-#define wcq        2
-#define bck        3
-#define bcq        4
-
 /* result flags: */
 #define no_result      0
 #define stalemate      1
@@ -98,15 +95,22 @@
 
 typedef enum {FALSE, TRUE} bool;
 
+/* castle flags: */
+#define no_castle  0
+#define wck        1
+#define wcq        2
+#define bck        3
+#define bcq        4
+
 typedef struct {
-  bool ep;
   int from;
   int target;
   int captured;
-  int promoted;
-  int castled;
   int cap_num;
+  int castled;
   int was_promoted;
+  int ep; 
+  int promoted;	      
 } move_s;
 
 #if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY)) 

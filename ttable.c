@@ -34,11 +34,12 @@ unsigned long TTProbes;
 unsigned long TTHits;
 unsigned long TTStores;
 
-#define TTSIZE 500000
+#define TTSIZE 1000000
 
 typedef struct 
 {
   signed char Depth;  
+  /* unsigned char may be a bit small for bughouse/crazyhouse */
   unsigned char Bestmove;
   unsigned OnMove:1, Threat:1, Type:2;
   unsigned long Hash;
@@ -48,6 +49,11 @@ typedef struct
 TType;
 
 TType TTable[TTSIZE];
+
+void clear_tt(void)
+{
+  memset(TTable, 0, sizeof(TTable));
+};
 
 void initialize_zobrist(void)
 {
@@ -71,14 +77,16 @@ void initialize_hash(void)
 {
   int p;
   
+  hash = 0xDEADBEEF;
+  
   for(p = 0; p < 144; p++)
     {
       hash = hash ^ zobrist[board[p]][p];
     }
 
   hold_hash = 0xC0FFEE00;
+  /* we need to set up hold_hash here, reply on ProcessHolding for now */
 
-  memset(TTable, 0, sizeof(TTable));
 }
 
 void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
@@ -151,8 +159,8 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
     {
       TTHits++;
       
-      /*  if ((TTable[index].Type == UPPER) 
-      	   && ((depth-1) <= TTable[index].Depth) 
+      /*if ((TTable[index].Type == UPPER) 
+      	   && ((depth-2-1) <= TTable[index].Depth) 
       	   && (TTable[index].Bound < beta)) 
       	  *donull = FALSE;*/
 

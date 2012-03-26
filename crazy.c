@@ -46,6 +46,7 @@ void ProcessHoldings(char str[])
   i = 0;
 
   memset(holding, 0, sizeof(holding));
+  hold_hash = 0xC0FFEE00;
 
   hand_eval = 0;
 

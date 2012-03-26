@@ -30,7 +30,7 @@ char book_flags[4000][21];
 int num_book_lines;
 int book_ply;
 int use_book;
-char opening_history[81];
+char opening_history[STR_BUFF];
 
 #define book_always 1        /* corresponds with ! */
 #define book_never 2         /* corresponds with ? */
@@ -169,35 +169,14 @@ move_s choose_book_move (void) {
    move_s book_replies[4000], moves[400];
    char force_move = FALSE;
 
-   /* make move_s structs for our opening moves as white (the other
-      opening book first moves are really only meant for use to reply as
-      black to that opening, or are a bit too risky ;) */
-
-   move_s e2e4 = {0, 42, 66, npiece, 0, no_castle, 0, 0};
-   move_s d2d4 = {0, 41, 65, npiece, 0, no_castle, 0, 0};
-
    srand(time(0));
 
    if (!book_ply)
-      last_book_move = 0;
+     last_book_move = 0;
 
-   num_moves = 0;
    num_replies = 0;
-   gen(&moves[0], &num_moves);
-
-   /* if we're playing white (book_ply == 0), pick one of our first moves */
-
-   if (Variant == Normal)
-     {
-       if (!book_ply) {
-	 /* pick a random number from 0 to 3: */
-	 random_number = rand() % 2;
-	 if (random_number == 0)
-	   return d2d4;
-	 else if (random_number == 1)
-	   return e2e4;
-       }
-     }
+   gen(&moves[0]); 
+   num_moves = numb_moves;
 
    for (i = last_book_move; i < num_book_lines; i++) {
       /* check to see if opening line matches up to current book_ply: */
@@ -256,3 +235,4 @@ move_s choose_book_move (void) {
    return book_replies[random_number];
 
 }
+

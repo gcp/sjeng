@@ -276,7 +276,7 @@ long int eval (void) {
 
   /* return a score for the current middlegame position: */
 
-  int i, a, pawn_file, j; 
+  int i, a, j; 
   long int score = 0;
   int in_cache;
 #ifdef FULLEVAL
