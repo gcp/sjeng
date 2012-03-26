@@ -226,21 +226,23 @@ int rev_rank[9] = {
 0,8,7,6,5,4,3,2,1};
 
 /* king safety tropisms */
+/* tropism values of 0 and 8 are bogus, 
+   and should never happen in the actual eval */
 
-const int pre_p_tropism[8] = 
-{ 9999, 120, 40, 20, 5, 2, 1, 0};
+const int pre_p_tropism[9] = 
+{ 9999, 120, 40, 20, 5, 2, 1, 0, 9999};
 
-const int pre_r_tropism[8] = 
-{ 9999, 100, 40, 15, 5, 2, 1, 0};
+const int pre_r_tropism[9] = 
+{ 9999, 100, 40, 15, 5, 2, 1, 0, 9999};
 
-const int pre_n_tropism[8] =
-{ 9999, 70, 90, 35, 10, 2, 1, 0};
+const int pre_n_tropism[9] =
+{ 9999, 70, 90, 35, 10, 2, 1, 0, 9999};
 
-const int pre_q_tropism[8] =
-{ 9999, 120, 60, 20, 5, 2, 0, 0};
+const int pre_q_tropism[9] =
+{ 9999, 120, 60, 20, 5, 2, 0, 0, 9999};
 
-const int pre_b_tropism[8] =
-{ 9999, 60, 25, 15, 5, 2, 2, 2};
+const int pre_b_tropism[9] =
+{ 9999, 60, 25, 15, 5, 2, 2, 2, 9999};
 
 unsigned char p_tropism[144][144];
 unsigned char q_tropism[144][144];

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(sjeng.c)
 
-AM_INIT_AUTOMAKE(Sjeng, 7.1)
+AM_INIT_AUTOMAKE(Sjeng, 7.2)
 AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
@@ -19,6 +19,6 @@ AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS(ftime select strstr)
+AC_CHECK_FUNCS(ftime select strstr gettimeofday)
 
 AC_OUTPUT(Makefile tests/Makefile books/Makefile)

@@ -56,6 +56,8 @@ How do I get it to work ?
     #define HAVE_FTIME
     #define VERSION "7.0"
 
+    You may have to define _WIN32 also.
+
     Alternatively you can use the Cygnus utilities. I have
     never used them myself so I cannot help you there, but
     you will probably have little or no trouble compiling

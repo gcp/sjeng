@@ -109,7 +109,7 @@ typedef struct {
   int was_promoted;
 } move_s;
 
-#ifdef HAVE_SYS_TIMEB_H
+#if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY)) 
 typedef struct timeb rtime_t;
 #else
 typedef time_t rtime_t;

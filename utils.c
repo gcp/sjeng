@@ -33,10 +33,12 @@
 fd_set read_fds;
 struct timeval timeout = { 0, 0 };
 #else
+#ifdef _WIN32
 #undef frame
 #include <windows.h>
 #include <time.h>
 #define frame 0
+#endif
 #endif
 
 long int allocate_time (void) {
@@ -447,15 +449,15 @@ long int rdifftime (rtime_t end, rtime_t start) {
      centi-seconds */
 
   /* using ftime(): */
-  #ifdef HAVE_FTIME
+#if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY))
   return ((end.time-start.time)*100 + (end.millitm-start.millitm)/10);
 
   /* -------------------------------------------------- */
 
   /* using time(): */
-  #else
+#else
   return (100*(long int) difftime (end, start));
-  #endif
+#endif
 
 }
 
@@ -525,17 +527,31 @@ void rinput (char str[], int n, FILE *stream) {
 rtime_t rtime (void) {
 
   /* using ftime(): */
-  #ifdef HAVE_FTIME
+#if defined(HAVE_FTIME) && defined(HAVE_SYS_TIMEB_H)
   rtime_t temp;
   ftime(&temp);
   return (temp);
 
   /* -------------------------------------------------- */
 
-  /* using time(): */
-  #else
+  /* gettimeofday replacement by Daniel Clausen */
+#else
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_SYS_TIMEB_H)
+  rtime_t temp;
+  struct timeval tmp;
+
+  gettimeofday(&tmp, NULL);
+  temp.time = tmp.tv_sec;
+  temp.millitm = tmp.tv_usec / 1000;
+  temp.timezone = 0;
+  temp.dstflag = 0;
+  
+  return (temp);
+
+#else
   return (time (0));
-  #endif
+#endif  
+#endif
 
 }
 
@@ -673,10 +689,11 @@ int interrupt(void)
     }
   else return 0;
 #else 
+#ifdef _WIN32
   static int init = 0, pipe;
   static HANDLE inh;
   DWORD dw;
-  if(xb_mode) {     // winboard interrupt code taken from crafty
+  if(xb_mode) {     /* winboard interrupt code taken from crafty */
     if (!init) {
       init = 1;
       inh = GetStdHandle(STD_INPUT_HANDLE);
@@ -760,6 +777,9 @@ int interrupt(void)
 	};
     }
   }
+#else
+  return 0;
+#endif
 #endif
   
 }

@@ -6,6 +6,8 @@ NOT VERIFIED
 ------------
 
 Reported to have trouble with ep moves when leaving book. (JamesBaud)
+Not always resets to crazyhouse when it's partner leaves. Maybe this
+is a WinBoard bug? (JamesBaud)
 
 KNOWN
 -----

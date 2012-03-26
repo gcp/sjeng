@@ -1,3 +1,12 @@
+Sjeng 7.2
+
+Fixed an out-of-bounds bug
+Better support for systems that lack ftime()
+
+Sjeng 7.1
+
+Books and tests were added to distribution
+
 Sjeng VII
 
 Modified piece values as per Gnejs request

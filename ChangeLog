@@ -1,3 +1,32 @@
+2000-04-22  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.2
+
+	* NEWS: updated
+
+	* README: added remark about _WIN32
+
+	* utils.c: (rdifftime): use precise function if HAVE_GETTIMEOFDAY
+	or HAVE_FTIME
+
+	* sjeng.h: don't use timeb if !HAVE_GETTIMEOFDAY and !HAVE_FTIME
+
+	* utils.c: (interrupt): check for _WIN32 if !HAVE_SELECT
+
+	* added THANKS
+
+	* utils.c: (rtime): use gettimeofday if ftime is not available
+
+	* configure.in: added check for gettimeofday
+	AM_INIT_AUTOMAKE: updated version number
+
+	* eval.c: (initialize_eval): last fix was not sufficent
+	increased dimension of pre_tropism arrays
+
+2000-04-18  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* eval.c: (initialize_eval): fix out-of-bounds error
+
 2000-04-16  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
 
 	* Released 7.1
