@@ -70,7 +70,7 @@ void checkECache(long int *score, int *in_cache)
 
 void reset_ecache(void)
 {
-  memset(ECache, 0, sizeof(ECache));
+  memset(ECache, 0, sizeof(ECacheType)*ECacheSize);
   return;
 }
 
