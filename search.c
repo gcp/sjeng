@@ -381,7 +381,7 @@ long int qsearch (int alpha, int beta, int depth) {
     
     seev = see_values[i];
  
-    if (((seev < delta) || (seev < 0)) && !moves[i].promoted)
+    if (!moves[i].promoted && ((seev < delta) || (seev < 0)))
 	continue;
   
     make (&moves[0], i);
