@@ -31,7 +31,8 @@ int num_holding[2];
 
 int drop_piece;
 
-int hand_eval;
+int white_hand_eval;
+int black_hand_eval;
 
 unsigned long hold_hash;
 
@@ -48,8 +49,10 @@ void ProcessHoldings(char str[])
   memset(holding, 0, sizeof(holding));
   hold_hash = 0xC0FFEE00;
 
-  hand_eval = 0;
-
+  white_hand_eval = 0;
+  black_hand_eval = 0;
+  reset_ecache();
+  
   num_holding[WHITE] = 0;
   num_holding[BLACK] = 0;
 
@@ -159,7 +162,10 @@ void addHolding(int what, int who)
 
     };
 
-  hand_eval += hand_value[what]; 
+  if (who == WHITE)
+    white_hand_eval += hand_value[what];
+  else
+    black_hand_eval += hand_value[what];
 
   Material += material[what];
 
@@ -184,7 +190,10 @@ void removeHolding(int what, int who)
       
     }
 
-  hand_eval -= hand_value[what];
+  if (who == WHITE)
+  	white_hand_eval -= hand_value[what];
+  else
+    	black_hand_eval -= hand_value[what];
 
   Material -= material[what];
 
@@ -200,7 +209,10 @@ void DropaddHolding(int what, int who)
   
   HHash(what, holding[who][what]);
   
-  hand_eval += hand_value[what]; 
+  if (who == WHITE)
+    white_hand_eval += hand_value[what];
+  else
+    black_hand_eval += hand_value[what];
 
   Material += material[what];
 
@@ -218,8 +230,11 @@ void DropremoveHolding(int what, int who)
   holding[who][what]--;
   
   num_holding[who]--;
-  
-  hand_eval -= hand_value[what];
+
+  if (who == WHITE)
+      white_hand_eval -= hand_value[what];
+  else
+      black_hand_eval -= hand_value[what];
 
   Material -= material[what];
 

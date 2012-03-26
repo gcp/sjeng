@@ -48,6 +48,8 @@ typedef struct
 unsigned long kksize;
 unsigned char *keycache;
 
+unsigned long lastbookpos, lastbooktomove;
+
 void get_header(FILE *pgnbook, pgn_header_t *pgn_header)
 {
   int ch;
@@ -441,8 +443,6 @@ move_s choose_binary_book_move (void)
   raw = 0;
   num_bookmoves = 0;
   
-  ep = ep_square;
-  
   gen(&moves[0]);
   num_moves = numb_moves;	
   
@@ -484,8 +484,6 @@ move_s choose_binary_book_move (void)
       unmake(&moves[0], i);
     }
   
-  ep_square = ep;
-  
   gdbm_close(binbook);
   
   printf("Book moves: raw: %d cut : %d\n", raw, num_bookmoves);
@@ -493,6 +491,9 @@ move_s choose_binary_book_move (void)
   if (!num_bookmoves) 
     return dummy;
   
+  lastbookpos = hash;
+  lastbooktomove = ToMove;
+
   /* find the top frequency: */
     for (i = 0; i < num_bookmoves; i++) {
       if (scores[i] > best_score) {
@@ -519,3 +520,81 @@ move_s choose_binary_book_move (void)
 }
 
 
+void book_learning(int result)
+{
+  GDBM_FILE binbook;
+  hashkey_t key;
+  posinfo_t *ps;
+  datum index;
+  datum data;
+  int playinc;
+
+  if (lastbookpos == 0) return;
+  
+  if (Variant == Normal)
+    binbook = gdbm_open("nbook.bin", 16384, GDBM_READER, 0, NULL);
+  else if (Variant == Suicide)
+    binbook = gdbm_open("sbook.bin", 16384, GDBM_READER, 0, NULL);
+  else 
+    binbook = gdbm_open("zbook.bin", 16384, GDBM_READER, 0, NULL);
+    
+   
+  if (binbook == NULL)
+    {
+      printf("No BinBook found, not learning.\n");
+      return;
+    }  
+
+  key.hashkey = (lastbookpos ^ lastbooktomove);
+  index.dptr = &key;
+  index.dsize = sizeof(key);
+  
+  data = gdbm_fetch(binbook, index);
+  
+  if (data.dptr != NULL)
+    {
+      ps = data.dptr;
+
+      playinc = 0;
+      
+      if (result == WIN)
+	{
+	  if (my_rating <= opp_rating)
+	    playinc = 2;
+	  else
+	    playinc = 1;
+	}
+      else if (result == LOSS)
+	{
+	  if (my_rating >= opp_rating)
+	    playinc = -2;
+	  else
+	    playinc = -1;
+	}
+      else
+	{
+	  if (my_rating >= opp_rating)
+	    playinc = -1;
+	  else
+	    playinc = 1;
+	}
+
+      if ((ps->played + playinc) < 0)
+	playinc = -(ps->played);
+
+      printf("Learning opening %X, old %d, new %d\n", 
+	     lastbookpos, ps->played, (ps->played)+playinc);
+
+      ps->played += playinc;
+
+      gdbm_store(binbook, index, data, GDBM_REPLACE);      
+    
+      free(data.dptr);
+    }
+  else
+    {
+      printf("Book position disappeared during game?!?\n");
+    }
+
+  return;
+};

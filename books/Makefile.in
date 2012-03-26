@@ -62,7 +62,7 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 
-EXTRA_DIST = bug.opn normal.opn zh.opn
+EXTRA_DIST = bug.opn normal.opn zh.opn suicide.opn
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 

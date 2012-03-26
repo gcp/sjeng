@@ -817,19 +817,19 @@ long int mid_eval (void) {
 	if (white_castled)
 	  score += 20;
 	else if (moved[30]) {
-	  score -= 7;
+	  score -= 10;
 	  /* make the penalty bigger if the king is open, leaving the other
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
 	  if (!pawns[1][pawn_file])
-	    score -= 8;
+	    score -= 15;
 	}
 
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
 	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
-	  score -= 8*(white_back_pawn[pawn_file]-srank-1);
+	  score -= 9*(white_back_pawn[pawn_file]-srank-1);
 	else
 	  score -= 16;
 	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
@@ -851,19 +851,19 @@ long int mid_eval (void) {
 	if (black_castled)
 	  score -= 20;
 	else if (moved[114]) {
-	  score += 7;
+	  score += 10;
 	  /* make the penalty bigger if the king is open, leaving the other
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
 	  if (!pawns[0][pawn_file])
-	    score += 8;
+	    score += 15;
 	}
 
 	/* if the king is behind some pawn cover, give penalties for the pawn
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
 	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
-	  score += 8*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
+	  score += 9*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
 	  score += 16;
 	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])
@@ -1248,7 +1248,7 @@ long int opn_eval (void) {
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
 	  if (!pawns[1][pawn_file])
-	    score -= 8;
+	    score -= 10;
 	}
 
 	/* in general, in the opening, don't worry quite so much about pawn
@@ -1258,7 +1258,7 @@ long int opn_eval (void) {
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
 	if (srank < white_back_pawn[pawn_file] && pawns[1][pawn_file])
-	  score -= 5*(white_back_pawn[pawn_file]-srank-1);
+	  score -= 6*(white_back_pawn[pawn_file]-srank-1);
 	else
 	  score -= 8;
 	if (srank < white_back_pawn[pawn_file+1] && pawns[1][pawn_file+1])
@@ -1285,7 +1285,7 @@ long int opn_eval (void) {
 	     side a chance to gain tempo with files along the file, as well
 	     as building an attack: */
 	  if (!pawns[0][pawn_file])
-	    score += 8;
+	    score += 10;
 	}
 
 	/* in general, in the opening, don't worry quite so much about pawn
@@ -1295,7 +1295,7 @@ long int opn_eval (void) {
 	   cover being far from the king, else give a penalty for the king
 	   not having any pawn cover: */
 	if (srank > black_back_pawn[pawn_file] && pawns[0][pawn_file])
-	  score += 5*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
+	  score += 6*(srev_rank[srank-black_back_pawn[pawn_file]-1]);
 	else
 	  score += 8;
 	if (srank > black_back_pawn[pawn_file+1] && pawns[0][pawn_file+1])

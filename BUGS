@@ -5,19 +5,14 @@ Please submit bug reports to sjeng-devel@lists.sourceforge.net
 NOT VERIFIED
 ------------
 
-Reported to have trouble with ep moves when leaving book. (JamesBaud)
-Not always resets to crazyhouse when it's partner leaves. Maybe this
-is a WinBoard bug? (JamesBaud)
-
-x Moves in x minutes timecontrol code is sloppy. (Mogens Larsen)
-
 KNOWN
 -----
 
 Trouble detecting variants and partner tells on chess.net. This is 
 an XBoard/WinBoard Zippy problem, not related to Sjeng itself.
 
-FIXED
------
+Analyse mode stops as soon as a mate is played.
 
-Always gives an error after running a testsuite. (Dann Corbit)
+The 'ping' command interrupts the search.
+
+'white' and 'black' do not always work as intended.

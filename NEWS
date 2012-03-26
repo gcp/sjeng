@@ -1,3 +1,15 @@
+Sjeng 8.0
+
+Much improved crazyhouse evaluation
+Support for v2 of xboard/Winboard protocol
+New suicide mode (no more alpha-beta)
+Simple book learning
+Tweaked search & extensions
+Fixes to xboard/Winboard support (setboard, undo)
+Use a configuration file
+Use SAN for move output
+Small suicide opening book
+
 Sjeng 7.5
 
 Suicide opening book

@@ -132,11 +132,18 @@ void ResetHandValue(void);
 
 void build_book(void);
 void comp_to_san (move_s move, char str[]);
-
+void stringize_pv (char str[]);
+  
 void clear_tt(void);
 void clear_dp_tt(void);
 
 move_s proofnumbercheck(move_s compmove);
 void proofnumbersearch(void);
+
+void alloc_hash(void);
+void alloc_ecache(void);
+void read_rcfile(void);
+
+void book_learning(int result);
 #endif
 

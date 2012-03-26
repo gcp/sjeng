@@ -33,9 +33,8 @@
 
 #define PN_INF 100000000
 
-#define MAXSEARCH 250000
-/* we can exceed MAXSEARCH before exiting the main search loop */
-#define SAFETY      5000
+/* we can exceed PBSize before exiting the main search loop */
+#define SAFETY     10000
 
 int nodecount;
 int nodecount2;
@@ -486,7 +485,7 @@ void develop_node (node_t * node)
       /* check to see if our move is legal: */
       if (check_legal (&moves[0], i))
 	{
-//          if (pn2)
+  //        if (pn2)
 	    newnode = (node_t *) Xmalloc (sizeof (node_t));
 //	  else
 //	    newnode = (node_t *) malloc (sizeof (node_t));
@@ -653,7 +652,7 @@ proofnumbersearch (void)
   char PV[8192];
   int i;
   int eps;
-  int bdp;
+  float bdp;
 
   nodecount = 1;
   iters = 0;
@@ -669,7 +668,7 @@ proofnumbersearch (void)
 
   root = (node_t *) calloc (1, sizeof (node_t));
 
-  membuff = (unsigned char *) calloc(MAXSEARCH + SAFETY, sizeof(node_t));
+  membuff = (unsigned char *) calloc(PBSize, sizeof(node_t));
 
   pn_eval (root);
   
@@ -693,7 +692,8 @@ proofnumbersearch (void)
 
   currentnode = root;
 
-  while (root->proof != 0 && root->disproof != 0 && nodecount < MAXSEARCH)
+  while (root->proof != 0 && root->disproof != 0 
+      && (bufftop < ((PBSize-SAFETY) * sizeof(node_t))))
     {
       mostproving = select_most_proving (currentnode);
       develop_node (mostproving);
@@ -701,7 +701,7 @@ proofnumbersearch (void)
 
       iters++;
 
-      if ((iters % 64) == 0)
+      if ((iters % 128) == 0)
 	{
 //	  printf("P: %d D: %d N: %d S: %Ld Mem: %2.2fM Iters: %d\n", root->proof, root->disproof, nodecount, frees, (((nodecount) * sizeof(node_t) / (float)(1024*1024))), iters);
 
@@ -863,11 +863,19 @@ proofnumbersearch (void)
   
   for (i = 0; i < root->num_children; i++)
     {
-      if (root->children[i]->disproof > bdp)
+      if (root->children[i]->proof != 0)
+      {
+      	if (((float)(root->children[i]->disproof) / (float)(root->children[i]->proof)) > bdp)
 	{
-	  bdp = root->children[i]->disproof;
-	  pn_saver = root->children[i]->move;
+	  bdp = (float)root->children[i]->disproof / (float)(root->children[i]->proof);
+	  pn_move = root->children[i]->move;
 	}
+      }
+      else
+      {
+	pn_move = root->children[i]->move;
+	break;
+      }
     };
 
   free(root);
@@ -906,7 +914,7 @@ move_s proofnumbercheck(move_s compmove)
   
   root = (node_t *) calloc(1, sizeof(node_t));
 
-  membuff = (unsigned char *) calloc(MAXSEARCH, sizeof(node_t));
+  membuff = (unsigned char *) calloc(PBSize, sizeof(node_t));
   
   pn_eval(root);
 
@@ -914,7 +922,8 @@ move_s proofnumbercheck(move_s compmove)
 
   currentnode = root;
 
-  while (root->proof != 0 && root->disproof != 0 && nodecount < MAXSEARCH)
+  while (root->proof != 0 && root->disproof != 0
+      && (bufftop < ((PBSize-SAFETY) * sizeof(node_t))))
     {
       mostproving = select_most_proving(currentnode);
       develop_node(mostproving);

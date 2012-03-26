@@ -9,30 +9,15 @@ TODO
 15. Just keep researching if dead
 16. Remove has_castled dependencies
 17. If partner tells +++ override alpha-beta with a special check
-20. Slit up movegen to do captures and normal moves seperately
-21. Scale kingsafety by pieces in hand
-22. Implement a configuration file
+20. Split up movegen to do captures and normal moves seperately
 23. Add endgame database support
 24. Experiment with TD learning
 
 MAYBE
 
 8. Threat heuristics
-9. Check whether material is still correctly being updated
-10. Razor dropchecks if checking piece is enprise
 11. Add a feature to anticipate trades
 12. Force moving into mate
-13. Reset PV on fail-high also in normal search ?
-
-DONE
-
-0. Rank/File arrays
-1. Implement +piece commands
-2. Fix bugs in standard chess (pawn transformations)
-6a. Positional learning
-12b. Hashed opening bo
-14. Check whether bad trades are evaluated in Reggies code
-19. Make a decent makefile / use autoconfig etc...
 
 DIDN'T WORK
 

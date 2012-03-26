@@ -58,7 +58,9 @@ void setup_epd_line(char* inbuff)
 
   rankoffset = rankoffsets[0];
 
-  while(inbuff[i] != '\n')
+  while (inbuff[i] == ' ') {i++;};
+
+  while((inbuff[i] != '\n') && (inbuff[i] != '\0'))
     {
       if(stage == 0 && isdigit(inbuff[i]))
 	{
@@ -265,7 +267,6 @@ void run_epd_testsuite(void)
      if (interrupt()) rinput(tempbuff, STR_BUFF, stdin);
       
       fixed_time = thinktime;
- 
       
       cpu_start = clock();
       comp_move = think();
@@ -317,6 +318,7 @@ void run_epd_testsuite(void)
       printf("Solved: %d/%d\n", found, tested);
       
     };
+ 
   printf("\n");
 };
 

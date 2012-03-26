@@ -43,7 +43,8 @@ extern rtime_t start_time;
 extern int holding[2][16];
 extern int num_holding[2];
 
-extern int hand_eval;
+extern int white_hand_eval;
+extern int black_hand_eval;
 
 extern int drop_piece;
 
@@ -75,6 +76,7 @@ extern int num_book_lines;
 extern int book_ply;
 extern int use_book;
 extern char opening_history[STR_BUFF];
+extern unsigned long lastbookpos, lastbooktomove;
 
 extern int Material;
 extern int material[17];
@@ -136,3 +138,18 @@ extern int pn_time;
 extern move_s pn_move;
 extern move_s pn_saver;
 extern bool kibitzed;
+
+extern int cfg_booklearn;
+extern int cfg_devscale;
+extern int cfg_razordrop;
+extern int cfg_cutdrop;
+extern int cfg_futprune;
+extern float cfg_scalefac;
+extern int cfg_ksafety[15][9];
+extern int cfg_tropism[5][7];
+extern int havercfile;
+extern int TTSize;
+extern int PBSize;
+extern int ECacheSize;
+
+extern int my_rating, opp_rating;

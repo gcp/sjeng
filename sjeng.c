@@ -44,6 +44,7 @@ bool xb_mode, captures, searching_pv, post, time_exit, time_failure;
 int phase;
 int root_to_move;
 
+int my_rating, opp_rating;
 
 move_s pv[PV_BUFF][PV_BUFF], killer1[PV_BUFF], killer2[PV_BUFF],
  killer3[PV_BUFF];
@@ -82,12 +83,12 @@ int main (int argc, char *argv[]) {
   double nps, elapsed;
   clock_t cpu_start, cpu_end;
   move_s game_history[600];
-  int ep_squares[600];
   int move_number;
   int is_edit_mode, edit_color;
+  int pingnum;
 
+  read_rcfile();
   initialize_zobrist();
-  initialize_eval();
  
   Variant = Normal;
   //Variant = Crazyhouse;
@@ -151,6 +152,8 @@ int main (int argc, char *argv[]) {
   TTProbes = 0;
   TTStores = 0;
   TTHits = 0;
+  lastbookpos = 0;
+  my_rating = opp_rating = 2000;
 
   xb_mode = FALSE;
   force_mode = FALSE;
@@ -178,7 +181,7 @@ int main (int argc, char *argv[]) {
   while (TRUE) {
 
     /* case where it's the computer's turn to move: */
-    if (!is_edit_mode && comp_color == white_to_move && !force_mode && !must_sit) {
+    if (!is_edit_mode && comp_color == white_to_move && !force_mode && !must_sit && !result) {
 
       /* whatever happens, never allow pondering in normal search */
       is_pondering = FALSE;
@@ -196,8 +199,7 @@ int main (int argc, char *argv[]) {
 	    
 	    comp_to_coord (comp_move, output);
 	    
-	    game_history[move_number] = comp_move;
-	    ep_squares[move_number++] = ep_square;
+	    game_history[move_number++] = comp_move;
 	    make (&comp_move, 0);
 	    
 	    root_to_move ^= 1;
@@ -244,7 +246,8 @@ int main (int argc, char *argv[]) {
 	    
 	    printf("Move ordering : %f%%\n", (((float)FHF*100)/(float)FH+1));
 	    
-	    printf("Material score: %d   Eval : %d\n", Material, eval());
+	    printf("Material score: %d   Eval : %d  White hand: %d  Black hand : %d\n", 
+		Material, eval(), white_hand_eval, black_hand_eval);
 	    
 	    printf("Hash : %X  HoldHash : %X\n", hash, hold_hash);
 
@@ -314,7 +317,7 @@ int main (int argc, char *argv[]) {
     else {
       /* start pondering */
 
-      if ((must_sit || (allow_pondering && !is_edit_mode && !force_mode) || is_analyzing ))
+      if ((must_sit || (allow_pondering && !is_edit_mode && !force_mode) || is_analyzing) && !result)
 	{
 	  is_pondering = TRUE;
 	  
@@ -329,8 +332,7 @@ int main (int argc, char *argv[]) {
     /* check to see if we have a move.  If it's legal, play it. */
     if (!is_edit_mode && is_move (&input[0])) {
       if (verify_coord (input, &move)) {
-	game_history[move_number] = move;
-	ep_squares[move_number++] = ep_square;
+	game_history[move_number++] = move;
 	make (&move, 0);
 	reset_piece_square ();
 	
@@ -359,7 +361,9 @@ int main (int argc, char *argv[]) {
     else {
 
       /* make everything lower case for convenience: */
-      for (p = input; *p; p++) *p = tolower (*p);
+      /* GCP: except for setboard, which is case sensitive */
+      if (!strstr(input, "setboard"))
+      	for (p = input; *p; p++) *p = tolower (*p);
 
       /* command parsing: */
       if (!strcmp (input, "quit")) {
@@ -394,7 +398,7 @@ int main (int argc, char *argv[]) {
 
 	if (xb_mode)
 	  {
-	    printf("tellics set 1 Sjeng " VERSION " (2000-12-4)\n");
+	    printf("tellics set 1 Sjeng " VERSION " (2-1-2001)\n");
 	  }
 
 	if (!is_analyzing)
@@ -402,7 +406,7 @@ int main (int argc, char *argv[]) {
 	  memcpy(material, std_material, sizeof(std_material));
 	  Variant = Normal;
 
-	  //memcpy(material, zh_material, sizeof(zh_material));
+	 // memcpy(material, zh_material, sizeof(zh_material));
 	  //Variant = Crazyhouse;
 	    
 	  init_game ();
@@ -417,11 +421,14 @@ int main (int argc, char *argv[]) {
 	  piecedead = FALSE;
 	  partnerdead = FALSE;
 	  kibitzed = FALSE;
+	  fixed_time = FALSE;
 
 	  root_to_move = WHITE;
   
 	  comp_color = 0;
 	  move_number = 0;
+	  lastbookpos = 0;
+	  my_rating = opp_rating = 2000;
 
 	  CheckBadFlow(TRUE);
 	  ResetHandValue();
@@ -518,8 +525,10 @@ int main (int argc, char *argv[]) {
 	opp_time = time_left;
 	fixed_time = FALSE;
       }
-      else if (!strncmp (input, "result", 6)) {
-
+      else if (!strncmp (input, "rating", 6)) {
+	sscanf (input+7, "%ld %ld", &my_rating, &opp_rating);
+	if (my_rating == 0) my_rating = 2000;
+	if (opp_rating == 0) opp_rating = 2000;
       }
       else if (!strncmp (input, "holding", 7)) {
 	ProcessHoldings(input);     
@@ -570,9 +579,8 @@ int main (int argc, char *argv[]) {
 	    printf("Move number : %d\n", move_number);
 	if (move_number > 0)
 	  {
-	    printf("UNMAKING\n");
+	    //	    printf("UNMAKING\n");
 	    unmake(&game_history[--move_number], 0);
-	    ep_square = ep_squares[move_number];
 	    reset_piece_square();
 	    root_to_move ^= 1;
 	  }
@@ -581,10 +589,8 @@ int main (int argc, char *argv[]) {
 	if (move_number > 1)
 	  {
 	    unmake(&game_history[--move_number], 0);
-	    ep_square = ep_squares[move_number];
 	    reset_piece_square();
 	    unmake(&game_history[--move_number], 0);
-	    ep_square = ep_squares[move_number];
 	    reset_piece_square();
 	  }
       }
@@ -635,6 +641,29 @@ int main (int argc, char *argv[]) {
       else if (!strncmp (input, "speed",  5)) {
 	speed_test();
       }
+      else if (!strncmp (input, "result", 6)) {
+	if (cfg_booklearn)
+	  {
+	    if (strstr (input+7, "1-0"))
+	      {
+		if (comp_color == 1)
+		  book_learning(WIN);
+		else
+		  book_learning(LOSS);
+	      }
+	    else if (strstr(input+7, "0-1"))
+	      {
+		if (comp_color == 1)
+		  book_learning(LOSS);
+		else
+		  book_learning(WIN);
+	      }
+	    else if (strstr(input+7, "1/2-1/2"))
+	      {
+		book_learning(DRAW);
+	      };
+	  }
+	}
       else if (!strncmp (input, "prove", 5)) {
 	printf("\nMax time to search (s): ");
 	start_time = rtime();
@@ -643,6 +672,26 @@ int main (int argc, char *argv[]) {
 	printf("\n");
 	proofnumbersearch();      
        }
+      else if (!strncmp (input, "ping", 4)) {
+	sscanf (input+5, "%d", &pingnum);
+	printf("pong %d\n", pingnum);
+      }
+      else if (!strncmp (input, "setboard", 8)) {
+	setup_epd_line(input+9);
+      }
+      else if (!strncmp (input, "protover 2", 10)) {
+	printf("feature ping=1 setboard=1 playother=0 san=0 usermove=0 time=1\n");
+	printf("feature draw=0 sigint=0 sigterm=0 reuse=1 analyze=1\n");
+	printf("feature myname=\"Sjeng " VERSION "\"\n");
+	printf("feature variants=\"normal,bughouse,crazyhouse,suicide,giveaway\"\n");
+	printf("feature colors=1 ics=0 name=0 done=1\n");
+      }
+      else if (!strncmp (input, "accepted", 8)) {
+	/* do nothing as of yet */
+      }
+      else if (!strncmp (input, "rejected", 8)) {
+	printf("Interface does not support a required feature...expect trouble.\n");
+      }
       else if (!strncmp (input, "warranty", 8)) {
 	  printf("\n  BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY\n"
 		 "FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN\n"

@@ -585,7 +585,12 @@ void make (move_s moves[], int i) {
   promoted = moves[i].promoted;
   castled = moves[i].castled;
 
+  if ((moves[i].target == 0) || ((moves[i].from != 0) && (board[moves[i].from] == npiece)))
+    return;
+  
   /* clear the en passant rights: */
+  moves[i].epsq = ep_square;
+
   ep_square = 0;
 
   if (from == 0)   
@@ -1172,6 +1177,11 @@ void unmake (move_s moves[], int i) {
   promoted = moves[i].promoted;
   castled = moves[i].castled;
 
+  if ((moves[i].target == 0) || ((moves[i].target != 0) && (board[moves[i].target] == npiece)))
+     return;
+    
+  ep_square = moves[i].epsq;
+  
   if (from == 0)   /* drop move */
     {
       /* Drop moves are hanled fully seperate because we exepect to encouter

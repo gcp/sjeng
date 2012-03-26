@@ -112,6 +112,7 @@ typedef struct {
   unsigned char was_promoted;
   unsigned char ep; 
   unsigned char promoted;	      
+  unsigned char epsq;
 } move_s;
 
 #if defined(HAVE_SYS_TIMEB_H) && (defined(HAVE_FTIME) || defined(HAVE_GETTIMEOFDAY)) 
@@ -133,5 +134,9 @@ typedef time_t rtime_t;
 #define EXACT 3
 #define HMISS 4
 #define DUMMY 0
+
+#define LOSS 0
+#define WIN 1
+#define DRAW 2
 
 #endif

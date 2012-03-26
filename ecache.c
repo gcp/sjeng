@@ -25,15 +25,14 @@
 #include "protos.h"
 #include "extvars.h"
 
-#define ECACHESIZE 500000
-
 typedef struct  
 {
 unsigned long stored_hash;
 unsigned int score;
 } ECacheType;
 
-ECacheType ECache[ECACHESIZE];
+/*ECacheType ECache[ECACHESIZE];*/
+ECacheType *ECache;
 
 unsigned long ECacheProbes;
 unsigned long ECacheHits;
@@ -42,11 +41,10 @@ void storeECache(long int score)
 {
   int index;
 
-  index = hash % ECACHESIZE;
+  index = hash % ECacheSize;
 
   ECache[index].stored_hash = hash;
   ECache[index].score = score;
-  
 }
 
 void checkECache(long int *score, int *in_cache)
@@ -55,7 +53,7 @@ void checkECache(long int *score, int *in_cache)
 
   ECacheProbes++;
 
-  index = hash % ECACHESIZE;
+  index = hash % ECacheSize;
 
   if(ECache[index].stored_hash == hash)
     {
@@ -69,5 +67,13 @@ void checkECache(long int *score, int *in_cache)
 void reset_ecache(void)
 {
   memset(ECache, 0, sizeof(ECache));
+  return;
+}
+
+void alloc_ecache(void)
+{
+  ECache = (ECacheType*)malloc(sizeof(ECacheType)*ECacheSize);
+  printf("Allocated %d eval cache entries, totalling %d bytes.\n",
+          ECacheSize, sizeof(ECacheType)*ECacheSize);
   return;
 }

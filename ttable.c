@@ -34,8 +34,6 @@ unsigned long TTProbes;
 unsigned long TTHits;
 unsigned long TTStores;
 
-#define TTSIZE 500000
-
 typedef struct 
 {
   signed char Depth;  
@@ -48,18 +46,22 @@ typedef struct
 }
 TType;
 
-TType DP_TTable[TTSIZE];
+/*TType DP_TTable[TTSIZE];
 TType AS_TTable[TTSIZE];
+*/
+
+TType *DP_TTable;
+TType *AS_TTable;
 
 void clear_tt(void)
 {
-  memset(DP_TTable, 0, sizeof(DP_TTable));
-  memset(AS_TTable, 0, sizeof(AS_TTable));
+  memset(DP_TTable, 0, sizeof(TType) * TTSize);
+  memset(AS_TTable, 0, sizeof(TType) * TTSize);
 };
 
 void clear_dp_tt(void)
 {
-  memset(DP_TTable, 0, sizeof(DP_TTable));
+  memset(DP_TTable, 0, sizeof(TType) * TTSize);
 };
 
 void initialize_zobrist(void)
@@ -102,9 +104,9 @@ void StoreTT(int score, int alpha, int beta, int best, int threat, int depth)
   
   TTStores++;
 
-  index = hash % TTSIZE;
+  index = hash % TTSize;
 
-  if (DP_TTable[index].Depth <= depth)
+  if (DP_TTable[index].Depth <= depth && !is_pondering)
     {
       if (score <= alpha)     
 	DP_TTable[index].Type = UPPER;
@@ -158,7 +160,7 @@ void LearnStoreTT(int score, unsigned nhash, unsigned hhash, int tomove, int bes
 {
   unsigned long index;
 
-  index = nhash % TTSIZE;
+  index = nhash % TTSize;
 
   AS_TTable[index].Depth = depth;
   AS_TTable[index].Type = EXACT;
@@ -180,7 +182,7 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
 
   TTProbes++;
 
-  index = hash % TTSIZE;
+  index = hash % TTSize;
   
   if ((DP_TTable[index].Hash == hash) 
       && (DP_TTable[index].Hold_hash == hold_hash) 
@@ -193,6 +195,8 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
       	   && (TTable[index].Bound < beta)) 
       	  *donull = FALSE;*/
 
+      if (DP_TTable[index].Threat) depth++;
+      
       if (DP_TTable[index].Depth >= depth)
 	{
 	  *score = DP_TTable[index].Bound;
@@ -221,6 +225,8 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
     {
       TTHits++;
 
+      if (AS_TTable[index].Threat) depth++;
+      
       if (AS_TTable[index].Depth >= depth)
 	{
 	  *score = AS_TTable[index].Bound;
@@ -248,8 +254,11 @@ int ProbeTT(int *score, int alpha, int beta, int *best, int *threat, int *donull
 
 }
 
-
-
-
-
-
+void alloc_hash(void)
+{
+  AS_TTable = (TType *) malloc(sizeof(TType) * TTSize);
+  DP_TTable = (TType *) malloc(sizeof(TType) * TTSize);
+  printf("Allocated 2*%d hash entries, totalling %d bytes.\n",
+          TTSize, 2*sizeof(TType)*TTSize);
+  return; 
+}

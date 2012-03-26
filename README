@@ -4,13 +4,13 @@ What is Sjeng ?
 Sjeng is a chessprogram that plays many variants. 
 In addition to that, it can also play normal chess
 quite well and is fully compatible with the standard 
-XBoard/WinBoard protocol.
+XBoard/WinBoard protocol (version 1 and 2).
 
 Technically, Sjeng is a highly advanced alpha-beta searcher, 
 using modern techniques like history and killer moves, 
 transposition tables, internal interative deepening, LVA/MVV
 move ordering, and search enhancements like selective
-extensions, Dynamic Principal Variation Search, Adaptive
+extensions, Aspiration Principal Variation Search, Adaptive
 nullmove pruning, Extended Futility Pruning and Limited 
 Razoring. Sjeng can use an opening book and learns from
 the games it plays.
@@ -21,6 +21,9 @@ level that the best humans are capable of.
 
 On 14th of October 2000, Sjeng won it's first title
 by becoming the World Computer Crazyhouse Chess Champion.
+
+On December 31th 2000, Sjeng became the first computer
+program to reach the #1 spot on the crazyhouse rating list.
 
 
 How do I get it to work ?
@@ -43,7 +46,7 @@ How do I get it to work ?
     performance out of Sjeng, try this:
 
     ./configure
-    gcc -O9 -mpentiumpro -funroll-loops -s -o sjeng blob2.c
+    gcc -O9 -mpentiumpro -funroll-loops -lgdbm -s -o sjeng blob2.c
 
     If you do not have an x86 machine, or an older version
     of gcc that doesn't recognize the '-mpentiumpro' flag,
@@ -66,7 +69,7 @@ How do I get it to work ?
     
     #define HAVE_SYS_TIMEB_H
     #define HAVE_FTIME
-    #define VERSION "7.4"
+    #define VERSION "8.0"
 
     You may have to define _WIN32 also.
 
@@ -78,15 +81,6 @@ How do I get it to work ?
  The opening books
  -----------------
 
- Copy the files zh.opn and normal.opn from the books directory
- to the directory from where you will be running Sjeng. 
-
- It is important that you keep starting Sjeng from the same 
- directory, because otherwise it will not be able to find its 
- opening books and it will not learn from the games it plays.
-
- NEW!
-
  From release 7.3 onwards Sjeng has an automatic bookbuilder
  which can use PGN databases to generate an opening book.
 
@@ -94,7 +88,8 @@ How do I get it to work ?
  a crazyhouse/bughouse book, first type 'variant crazyhouse',
  then type 'book'. Be sure to make the keycache large enough
  or the book-generation will be slow and you will end up with
- very large files.
+ very large files. You need about 8 bytes per position that
+ will be stored.
 
  You must use a pure PGN database. PGN derivates like BPGN
  are not (yet) supported, nor is the psuedo-PGN that some 
@@ -113,6 +108,11 @@ How do I get it to work ?
  The binary books (.bin files) are NOT exchangable between
  operating systems. You cannot mix a Windows-built book with 
  a Unix-running Sjeng.
+
+ If you think the above is too complicated or if you do
+ not have the time to use the bookbuilder, you can just
+ copy the *.opn files from the books dir into Sjeng's
+ directory. However, Sjeng cannot learn with the .opn books.
 
  The new .bin files can be used alongside the old .opn files.
  Sjeng will first look for an opening in the .opn files, and
@@ -133,10 +133,11 @@ How do I get it to work ?
 
  http://www.research.digital.com/SRC/personal/mann/xboard.html
 
- Unfortunately WinBoard/XBoard does not provide any option to
- play bughouse or crazyhouse, only standard chess. The Zippy
- interface (the part that connects to the chess servers) built 
- into WinBoard/XBoard *does* support bughouse and crazyhouse though.
+ You will need to start WinBoard/xboard with the -variants 
+ option to play bughouse,crazyhouse or suicide. If you need
+ more help with WinBoard/xboard reads it documentation. If
+ you want to let Sjeng play on a chess server, be sure to 
+ read zippy.README
 
  Zon Juan Jan wrote a Windows interface for crazyhouse-playing
  programs that can be used with Sjeng. Go to
@@ -147,27 +148,14 @@ How do I get it to work ?
  Zhouse Challenger. It works nicely and I can recommend
  it a lot!
 
- Vassili Sukharev told me he was extending his bughouse-database
- program to work with Sjeng. His homepage is at:
-
- http://www.cs.washington.edu/homes/vassili/ 
-
- (at the moment of this writing no support was available yet)
- 
 Tuning Sjeng
 ------------
 
-In the file ttable.c, you can change TTSIZE from 250000
-to a higher number. This will improve performance, as 
-long as your system does not have to swap to disk because
-of it.
-
-You can do the same with ECACHESIZE in ecache.c. This 
-is not so imporant as TTSIZE is.
-
-If you use Sjeng to play suicide, also look at MAXSEARCH
-in proof.c. You may have to increase this if your machine
-is very fast.
+A great deal Sjeng's workings can be customized without 
+recompiling it. You should take a look at sjeng.rc and
+adjust the parameters to your likings. Especially the
+first three are imporant because they control how much
+memory Sjeng will use for transposition tables and caches.
 
 Benchmarking
 ------------
@@ -217,8 +205,8 @@ http://lists.sourceforge.net/mailman/listinfo/sjeng-users
 Reporting bugs
 --------------
 
-You can either use the bug-tracker on the project
-homepage (recommended), or send email to
+If you spot a bug, or Sjeng crashes on you, please
+send email to
 
 sjeng-devel@lists.sourceforge.net
 
@@ -282,3 +270,5 @@ http://www.chessclub.com
 
 Or even better, gather a few friends, 2 chessboards, 2 clocks,
 some beer, and have fun beating each other ;)
+
+-- last revised 2000-1-2 -- gcp@users.sourceforge.net --

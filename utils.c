@@ -61,7 +61,7 @@ long int allocate_time (void) {
        will play poorly if it tries to do the same. */
 
     /* check to see if we're behind on time and need to speed up: */
-    if ((min_per_game < 3 && !inc) || time_left < min_per_game*6000*4.0/5.0) {
+    if ((min_per_game < 6 && !inc) || time_left < min_per_game*6000*4.0/5.0) {
       if ((opp_time-time_left) > (opp_time/5.0) && xb_mode)
 	move_speed = 40.0;
       else if ((opp_time-time_left) > (opp_time/10.0) && xb_mode)
@@ -69,29 +69,33 @@ long int allocate_time (void) {
       else if ((opp_time-time_left) > (opp_time/20.0) && xb_mode)
 	move_speed = 25.0;
     }
-
-    if (Variant == Suicide) move_speed -= 10;
-
-    /* check to see if we need to move REALLY fast: */
-    /*    if (time_left <= 6000 && inc < 3)
-	  move_speed += 15.0;*/
+   
+    if (Variant != Suicide)
+    {
+    	if ((time_left-opp_time) > (time_left/5.0) && xb_mode)
+        	move_speed -= 10;
+    	else if ((time_left-opp_time) > (time_left/10.0) && xb_mode)
+        	move_speed -= 5;
+    }    
+    else move_speed -= 10;
 
     /* allocate our base time: */
     allocated_time = time_left/move_speed;
 
     /* add our increment if applicable: */
     if (inc) {
-      if (time_left-allocated_time < inc+35)
-	allocated_time += (time_left-allocated_time)*4.0/5.0;
-      else
-	allocated_time += inc*4.0/5.0;
-    }
-
+      if (time_left-allocated_time-inc > 500) {
+        allocated_time += inc;
+      }
+      else if (time_left-allocated_time-(inc*2.0/3.0) > 100) {
+        allocated_time += inc*2.0/3.0;
+       }
+     }
   }
   
   /* conventional clock time allocation: */
   else {
-    allocated_time = (float) min_per_game/moves_to_tc*6000 - 100;
+    allocated_time = (((float)min_per_game/(float)moves_to_tc)*6000.) - 100.;
     /* if we've got extra time, use some of it: */
     if (time_cushion) {
       allocated_time += time_cushion*2.0/3.0;
@@ -101,7 +105,7 @@ long int allocate_time (void) {
 
   if (Variant == Bughouse)
 	allocated_time *= 1./2.;
-
+  
   return ((long int) allocated_time);
 
 }
@@ -114,10 +118,10 @@ void comp_to_san (move_s move, char str[])
   int i, num_moves, evasions, ambig, mate;
   int f_rank, t_rank, converter;
   char f_file, t_file;
-  int ep_temp;
-	
-  ep_temp = ep_square;
-	
+  int eps;
+
+  eps = ep_square;
+  
   f_rank = rank (move.from);
   t_rank = rank (move.target);
   converter = (int) 'a';
@@ -229,6 +233,9 @@ void comp_to_san (move_s move, char str[])
 	    }
 	}
     }
+  
+  ep_square = eps;
+  
   make(&move, 0);
   if (in_check())
     {
@@ -255,7 +262,6 @@ void comp_to_san (move_s move, char str[])
     }
   unmake(&move, 0);
   
-  ep_square = ep_temp;
 }
 
 void comp_to_coord (move_s move, char str[]) {
@@ -395,10 +401,12 @@ void init_game (void) {
   memset(is_promoted, 0, sizeof(is_promoted));
   memset(holding, 0, sizeof(holding));
 
-  hand_eval = 0;
+  white_hand_eval = 0;
+  black_hand_eval = 0;
 
   reset_piece_square ();
   
+  lastbookpos = 0;
   book_ply = 0;
   
   phase = Opening;
@@ -479,7 +487,7 @@ void perft_debug (void) {
   }
 }
 
-void hash_extract_pv(int level)
+void hash_extract_pv(int level, char str[])
 {
   int dummy, bm;
   move_s moves[MOVE_BUFF];
@@ -494,19 +502,45 @@ void hash_extract_pv(int level)
     {
       gen(&moves[0]); 
       num_moves = numb_moves;
-      if ((bm >= 0) && (bm <= num_moves))
+      if ((bm >= 0) && (bm < num_moves))
 	{
-	  comp_to_coord(moves[bm], output);
+	  comp_to_san(moves[bm], output);
 	  make(&moves[0], bm);
 	  if (check_legal(&moves[0], bm))
 	    {
 	      /* only print move AFTER legal check is done */
-	      printf("<%s> ", output);
-	      hash_extract_pv(level);
+	      strcat(str, "<");
+	      strcat(str, output);
+	      strcat(str, "> ");
+	      hash_extract_pv(level, str);
 	    }
 	  unmake(&moves[0], bm);
 	}
     }
+}
+
+void stringize_pv (char str[])
+{
+  char output[STR_BUFF];
+  int i;
+  
+  memset(str, 0, STR_BUFF);
+
+   for (i = 1; i < pv_length[1]; i++) 
+   {
+        	comp_to_san (pv[1][i], output);
+          	make(&pv[1][i], 0);
+          	strcat (str, output);
+	  	strcat (str, " ");
+   }
+
+   hash_extract_pv(7, str);
+   
+   for (i = (pv_length[1]-1); i > 0; i--)
+   {
+   	unmake(&pv[1][i], 0);
+   }
+
 }
 
 void post_thinking (long int score) {
@@ -516,7 +550,7 @@ void post_thinking (long int score) {
   int i, remake = 0;
   long int elapsed;
   char output[STR_BUFF];
-  int ep;
+  char hashpv[STR_BUFF];
 
   /* in xboard mode, follow xboard conventions for thinking output, otherwise
      output the iterative depth, human readable score, and the pv */
@@ -524,47 +558,35 @@ void post_thinking (long int score) {
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
 	
-    ep = ep_square;
-    
     /* if root move is already/still played, back it up */
     /* 25-06-2000 our en passant info is unrecoverable here
        so we cannot gen.... */
     
-#ifdef BOGUS
-    printf("\n");
-    return;
-    
-    if (board[pv[1][1].from] == npiece)
+    if (((pv[1][1].from != 0) && (board[pv[1][1].from] == npiece))
+	|| ((pv[1][1].from == 0) && (board[pv[1][1].target] != npiece)))
       {
-	printf("\n");
-	return;
-	
 	unmake(&pv[1][1], 0);
 	remake = 1;
-	ep_square = ugly_ep_hack;
       }
-#endif
     
    for (i = 1; i < pv_length[1]; i++) {
-     comp_to_coord (pv[1][i], output);
-#ifdef BOGUS  
+     comp_to_san (pv[1][i], output);
      make(&pv[1][i], 0);
-#endif
      printf ("%s ", output);
    }
 
-#ifdef BOGUS   
-   hash_extract_pv(7);
+   memset(hashpv, 0, sizeof(hashpv));
+
+   hash_extract_pv(7, hashpv);
+
+   printf("%s", hashpv);
    
    for (i = (pv_length[1]-1); i > 0; i--)
      {	
-       unmake(&pv[1][i], 0);
+           unmake(&pv[1][i], 0);
      }
    if (remake)
      make(&pv[1][1], 0);
-#endif   
-
-  ep_square = ep;
 
   printf ("\n");
 }
@@ -581,9 +603,9 @@ void post_fail_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
-    /*unmake(failmove, 0);*/
-    comp_to_coord (*failmove, output);
-    /*make(failmove, 0);*/
+    unmake(failmove, 0);
+    comp_to_san (*failmove, output);
+    make(failmove, 0);
     printf ("%s !", output);
     printf ("\n");
 }
@@ -599,9 +621,9 @@ void post_fh_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
-    /*unmake(failmove, 0);*/
-    comp_to_coord (*failmove, output);
-    /*make(failmove, 0);*/
+    unmake(failmove, 0);
+    comp_to_san (*failmove, output);
+    make(failmove, 0);
     printf ("%s !!", output);
     printf ("\n");
 }
@@ -617,9 +639,9 @@ void post_fl_thinking(long int score, move_s *failmove)
      output the iterative depth, human readable score, and the pv */
     elapsed = rdifftime (rtime (), start_time);
     printf ("%2d %7ld %5ld %8ld  ", i_depth, score, elapsed, nodes);
-    /*unmake(failmove, 0);*/
-    comp_to_coord (*failmove, output);
-    /*make(failmove, 0);*/
+    unmake(failmove, 0);
+    comp_to_san (*failmove, output);
+    make(failmove, 0);
     printf ("%s ??", output);
     printf ("\n");
 }
@@ -855,7 +877,6 @@ bool verify_coord (char input[], move_s *move) {
   char comp_move[6];
   bool legal = FALSE;
 
-  ep_temp = ep_square;
   gen (&moves[0]); 
   num_moves = numb_moves;
 
@@ -871,8 +892,6 @@ bool verify_coord (char input[], move_s *move) {
       unmake (&moves[0], i);
     }
   }
-
-  ep_square = ep_temp;
 
   return (legal);
 
@@ -1108,7 +1127,10 @@ void reset_board (void) {
   memset(is_promoted, 0, sizeof(is_promoted));
   memset(holding, 0, sizeof(holding));
 
-  hand_eval = 0;
+  white_hand_eval = 0;
+  black_hand_eval = 0;
+
+  lastbookpos = 0;
 
   reset_piece_square ();
   
@@ -1120,8 +1142,6 @@ void speed_test(void)
   int i, j, ep_temp;
   clock_t cpu_start, cpu_end; 
   float et;
-
-  ep_temp = ep_square;
 
   cpu_start = clock ();
 
@@ -1171,7 +1191,5 @@ void speed_test(void)
   
   /* restore the hash */
   initialize_hash();
-  
-  ep_square = ep_temp;
   
 }

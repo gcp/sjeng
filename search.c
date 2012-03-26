@@ -27,7 +27,7 @@
 #include "limits.h"
 
 unsigned long FH, FHF;
-unsigned long razor_drop, razor_material;
+unsigned long razor_drop, razor_material, drop_cuts;
 
 unsigned long rep_list[64];
 
@@ -36,6 +36,8 @@ char true_i_depth;
 int bestmovenum;
 
 int ugly_ep_hack;
+
+char postpv[STR_BUFF];
 
 #define KINGCAP 50000
 
@@ -269,6 +271,8 @@ long int qsearch (int alpha, int beta, int depth) {
   }
   
   best = -1;
+  
+  pv_length[ply] = ply;
 
   standpat = eval ();
   
@@ -279,13 +283,11 @@ long int qsearch (int alpha, int beta, int depth) {
     alpha = standpat;
   }
 
-  pv_length[ply] = ply;
-
   num_moves = 0;
   sbest = -1;
   best_score = -INF;
     
-  delta = alpha-(Variant == Normal ? 90 : 180)-standpat;
+  delta = alpha-(Variant == Normal ? 100 : 200)-standpat;
 
   /* generate and order moves: */
   gen (&moves[0]);
@@ -363,10 +365,9 @@ long int qsearch (int alpha, int beta, int depth) {
      been avoided by one side or not */
 
   if (no_moves)
-    return alpha;
+    return standpat;
   else
-    return best_score;
-  
+    return alpha;  
 }
 
 
@@ -408,13 +409,14 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   bool no_moves, legal_move;
   int bound, threat = 0, donull, best, sbest, best_score, old_ep;
   bool incheck, first;
-  int extend = 0, fscore, fmax, selective = 0;
+  int extend = 0, fscore, fmax, selective;
   int rep_loop;
   move_s kswap;
   int ksswap;
   int originalalpha;
   int afterincheck;
   int legalmoves;
+  int dropcut;
   
   /* before we do anything, see if we're out of time: */
   if (!(nodes & 4095)) {
@@ -423,6 +425,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       return 0;
     }
   }
+  
+  pv_length[ply] = ply;
 
   /* maybe optimize this so we step 2 at time ? */
   for (rep_loop = 1;rep_loop < ply; rep_loop++)
@@ -435,10 +439,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   
   incheck = in_check();
 
-  if (depth <= 0) depth = 0;
-  
   /* perform check extensions if we haven't gone past maxdepth: */
-  if (ply < maxdepth+1 && incheck && ((depth <= 0) || (Variant != Normal && (ply < (i_depth*2))))) 
+  if (ply < maxdepth+1 && incheck && ((Variant == Normal) || (ply < (i_depth*2)))) 
     {
       depth++;
       ext_check++;
@@ -452,7 +454,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
     if (Variant != Suicide)
       {
 	captures = TRUE;
-	score = qsearch (alpha, beta, 30);   
+	score = qsearch (alpha, beta, i_depth*3);   
 	captures = FALSE;
       }
     else
@@ -466,15 +468,15 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   num_moves = 0;
   no_moves = TRUE;
 
-  switch (ProbeTT(&bound, alpha, beta, &best, &threat, &donull, depth))
-    {
-    case EXACT:
+ switch (ProbeTT(&bound, alpha, beta, &i, &threat, &donull, depth))
+   {
+   case EXACT:
       return bound;
       break;
     case UPPER:
       if (bound <= alpha)
 	return bound;
-      if (bound < beta)
+       if (bound < beta)
       	beta = bound;
       break;
     case LOWER:
@@ -490,7 +492,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       threat = FALSE;
       break;
      };
-   
+  
   sbest = -1;
   best_score = -INF;
   originalalpha = alpha;
@@ -507,7 +509,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 
 	/* use R=1 cos R=2 is too dangerous for our ply depths */
       if (Variant != Normal)
-	score = -search(-beta, -beta+1, ((depth > 3) ? depth-2-1 : depth-1-1), TRUE);
+	score = -search(-beta, -beta+1, /*((depth > 3) ? */depth-2-1/* : depth-1-1)*/, TRUE);
       else
       {
 	if (depth > 11)
@@ -519,9 +521,9 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 
       };
 	  
-      white_to_move ^= 1;
-      ply--;
       hash ^= 0xDEADBEEF;
+      ply--;
+      white_to_move ^= 1;
       ep_square = old_ep;
 
       if (time_exit) return 0;
@@ -533,7 +535,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	  
 	  NCuts++;
 	  
-	  StoreTT(score, alpha, beta, 0, 0, depth);
+          StoreTT(score, alpha, beta, 0, 0, depth);
 	  
 	  return score;
 	}
@@ -552,7 +554,6 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       extend++;
     }
   
-  pv_length[ply] = ply;
  
 #undef IDEEP
 #ifdef IDEEP
@@ -575,8 +576,9 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   score = -INF;
   
   first = TRUE;
+  selective = 0;
 
-  if (phase != Endgame && (Variant != Suicide))
+  if (phase != Endgame && (Variant != Suicide) && cfg_futprune)
   {
 
     fscore = (white_to_move ? Material : -Material) + 900;
@@ -600,7 +602,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	best_score = fmax = fscore;
       }
   }
-
+  
   legalmoves = 0;
   
   /* generate and order moves: */
@@ -608,8 +610,6 @@ long int search (int alpha, int beta, int depth, bool is_null) {
   num_moves = numb_moves;
   
   if (Variant == Suicide && num_moves == 1) depth++;
-
-  if (kingcap) return KINGCAP;
 
   if (num_moves > 0)
   {
@@ -640,18 +640,41 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       
       if (check_legal (&moves[0], i)) {
 	
+	dropcut = 0;
+	
 	/* Razoring of uninteresting drops */
         if ((moves[i].from == 0)
-	    //&& (depth > 1)   /* more than pre-frontier nodes */
+	    && (depth > 1)   /* more than pre-frontier nodes */
 	    && !afterincheck   /* not a checking move */
 	    && !incheck      /* not a check evasion */
 	    && !searching_pv
+            && cfg_razordrop
 	    )
-	  { razor_drop++; extend--;};
+	  { razor_drop++; extend--;}
+	else
+	{
+	  if ((moves[i].from == 0) && (depth == 1) && !incheck && cfg_cutdrop) 
+	  {
+	    if (white_to_move)
+	    {
+	      /* black dropped the piece */
+	      /* check more white than black attackers */
+	      dropcut = (calc_attackers(moves[i].target, 1) 
+		        - calc_attackers(moves[i].target, 0)) > 0;
+	      if (dropcut) drop_cuts++;
+	    }
+	    else
+	    {
+	      dropcut = (calc_attackers(moves[i].target, 0)
+		  	- calc_attackers(moves[i].target, 1)) > 0;
+	      if (dropcut) drop_cuts++;
+	    }
+	  }
+	}
 	
-	if (!selective || afterincheck 
+	if (!dropcut && (!selective || afterincheck
 	    || (fmax + ((abs(material[moves[i].captured]) * (Variant == Normal?1:2))) > alpha) 
-	    || (moves[i].promoted)) 
+	    || (moves[i].promoted))) 
 	  {
 	    
 	    /* we only count the nodes we actually examine */  
@@ -674,6 +697,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 		
 		if (score > best_score && !time_exit && score != -KINGCAP)
 		  {
+                    best_score = score;
+                     
 		    if ((score > alpha) && (score < beta))
 		      {
 			score = -search(-beta, -score, depth+extend-1, FALSE);
@@ -690,15 +715,8 @@ long int search (int alpha, int beta, int depth, bool is_null) {
 	  razor_material++;
 	
 	
-	if (score == -KINGCAP)
-	  {
-	    legal_move = FALSE;
-	  }
-	else
-	  {
 	    legalmoves++;
 	    no_moves = FALSE;
-	  }
       }
 
       if (score > best_score && legal_move) best_score = score;
@@ -815,7 +833,7 @@ long int search (int alpha, int beta, int depth, bool is_null) {
       return 0;
     }
   }
-
+  
   if (best_score <= originalalpha)
     {
       if (!selective)
@@ -893,7 +911,7 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 	  root_score = -search (-beta, -alpha, depth-1, FALSE);
 	  ep_square = old_ep;	
 
-	  if (first && !time_exit && (post || !xb_mode) && i_depth >= mindepth) 
+	  if (!time_exit && (post || !xb_mode) && i_depth >= mindepth) 
 	    {
 	      if (root_score >= beta)
 		{
@@ -909,10 +927,10 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 		{
 		  /* update the pv: */
 		  /* maybe not..fail low yields nonsense */
-		  /*		  pv[ply-1][ply-1] = moves[i];
-		   for (j = ply; j < pv_length[ply]; j++)
-		     pv[ply-1][j] = pv[ply][j];
-		     pv_length[ply-1] = pv_length[ply];*/
+	//	   pv[ply-1][ply-1] = moves[i];
+	//	   for (j = ply; j < pv_length[ply]; j++)
+	//	     pv[ply-1][j] = pv[ply][j];
+	//	   pv_length[ply-1] = pv_length[ply];
 
 		  post_fl_thinking(root_score, &moves[i]);
 		}
@@ -926,6 +944,13 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 
 		  post_thinking(root_score);
 		}
+	       if (root_score > cur_score && !time_exit)
+	       {
+	          cur_score = root_score;
+		  bestmovenum = i;
+		  best_move = moves[i];
+	       }
+			    
 	    }
 	}
       else
@@ -933,6 +958,13 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 	  root_score = -search (-alpha-1, -alpha, depth-1, FALSE);
 	  ep_square = old_ep;
 
+	  if (root_score > cur_score && !time_exit)
+	  {
+	  	cur_score = root_score;
+		bestmovenum = i;
+		best_move = moves[i];
+	  }	
+	
 	  if ((root_score > alpha) && (root_score < beta) && !time_exit)
 	    {
 	      if (i_depth >= mindepth)
@@ -946,17 +978,13 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 		  /*  if (xb_mode) printf("++\n"); */
 		  post_fail_thinking(root_score, &moves[i]); 
 		}
-	      
-	      if (root_score > cur_score) 
-		{
-		  cur_score = root_score;
-		  bestmovenum = i;
-		  best_move = moves[i];
-		}
-	      
+		 
 	      root_score = -search(-beta, -root_score, depth-1, FALSE);
 	      ep_square = old_ep;
-	    }
+	      
+	   }
+
+	  if (root_score >= beta) post_fh_thinking(root_score, &moves[i]);
 	}
 
     if (root_score > cur_score && !time_exit) 
@@ -1043,13 +1071,13 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
       best_move = moves[i];
       bestmovenum = i;
       cur_score = alpha;
-
+      
       /* update the pv: */
       pv[ply][ply] = moves[i];
       for (j = ply+1; j < pv_length[ply+1]; j++)
 	pv[ply][j] = pv[ply+1][j];
       pv_length[ply] = pv_length[ply+1];
-
+      
       if (cur_score >= beta) return best_move;
 
       /* print out thinking information: */
@@ -1062,7 +1090,7 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
   }
 
   /* check to see if we are mated / stalemated: */
-  if (no_moves) {
+  if (no_moves && !is_pondering) {
     if (Variant != Suicide)
       {
 	if (in_check ()) {
@@ -1086,16 +1114,6 @@ move_s search_root (int originalalpha, int originalbeta, int depth) {
 	  result = white_is_mated;
 	}
       }
-  }
-
-  /* check to see if we have mated our opponent: */
-  if (root_score == INF-2) {   /* root_score */
-    if (white_to_move == 1) {
-      result = black_is_mated;
-    }
-    else {
-      result = white_is_mated;
-    }
   }
 
   return best_move;
@@ -1141,6 +1159,7 @@ move_s think (void) {
   ext_check = 0;
   razor_drop = 0;
   razor_material = 0;
+  drop_cuts = 0;
   rs = 0;
 
   true_i_depth = 0;
@@ -1177,13 +1196,13 @@ move_s think (void) {
      
      if (comp_move.target != 0) 
        {
-	 comp_to_coord (comp_move, postmove);
+	 comp_to_san (comp_move, postmove);
 	 printf("0 0 0 0 %s (Book Move)\n", postmove);
 	 cpu_end = clock ();
 	 
 	 ep_square = ep_temp;
     
-	 time_cushion += time_for_move+inc;
+	 time_cushion += inc;
 	 
 	 return comp_move;
        }
@@ -1238,19 +1257,19 @@ move_s think (void) {
 
    if (!is_pondering && (Variant == Suicide))
    {
-   	pn_time = (int)((float)time_for_move * 1.0/3.0);
-   	time_for_move = (int)((float)(time_for_move) * 2.0/3.0);
+   	pn_time = (int)((float)time_for_move * 2.0/2.0);
+   	time_for_move = 0; /*(int)((float)(time_for_move) * 3.0/2.0);*/
 
       	proofnumbersearch();
    }
   else
      pn_move = dummy;
    
-   if (pn_move.target != dummy.target || result)
+   if (/*pn_move.target != dummy.target || result*/ Variant == Suicide)
      {
        comp_move = pn_move;
      }
-   else
+   else 
      {
        /* clear the pv before a new search: */
        for (i = 0; i < PV_BUFF; i++)
@@ -1290,7 +1309,7 @@ move_s think (void) {
 	 
 	 alpha = temp_score - (Variant == Normal ? 50 : 100);
 	 beta = temp_score + (Variant == Normal ? 50 : 100);
-	 
+
 	 ep_square = ep_temp;
 	 temp_move = search_root (alpha, beta, i_depth);
 	 
@@ -1323,7 +1342,8 @@ move_s think (void) {
 	       }
 	     else if (cur_score >= beta && !time_exit)
 	       {
-		 /*printf("Fail high on fail-low\n");*/
+		 temp_move = search_root (-INF, +INF, i_depth);
+		 if (!time_exit) failed = 0;
 	       }
 	   }
 	 else if (cur_score >= beta && !time_exit) /* fail high */
@@ -1349,7 +1369,7 @@ move_s think (void) {
 	       }
 	     else if (cur_score <= alpha && !time_exit)
 	       {
-		 /*printf("Fail low on fail-high\n");*/
+		 temp_move = search_root (-INF, +INF, i_depth);
 	       };
 	   };
 	 
@@ -1372,9 +1392,15 @@ move_s think (void) {
 	   /* enabled 2000-5-28 */
 	   if (time_exit && (cur_score < temp_score-50) && (cur_score > -900000))
 	     break;
+
+	   /* acidentally pondering if mated */
+	   if (cur_score == -INF) return dummy;
 	   
 	   comp_move = temp_move;
 	   temp_score = cur_score;
+		  
+	   stringize_pv(postpv);
+	   
 	   if (!time_exit)
 	     {
 	       true_i_depth = i_depth;
@@ -1386,7 +1412,7 @@ move_s think (void) {
 	   if (temp_score > 900000 && ((int)(1000000-cur_score) < i_depth))
 	     {
 	       break;
-	};
+	     };
 	 }
 
 	 /* reset the killer scores (we can keep the moves for move ordering for
@@ -1410,8 +1436,8 @@ move_s think (void) {
 
     et = (cpu_end-cpu_start)/(double) CLOCKS_PER_SEC;
 
-    if (Variant == Suicide)
-      comp_move = proofnumbercheck(comp_move);
+    /*if (Variant == Suicide)
+      comp_move = proofnumbercheck(comp_move);*/
   };
 
   /* update our elapsed time_cushion: */
@@ -1419,7 +1445,31 @@ move_s think (void) {
     elapsed = rdifftime (rtime (), start_time);
     time_cushion += time_for_move-elapsed+inc;
   }
-
+  
+  if (temp_score == INF-2 && !is_pondering) 
+    {
+      if (white_to_move == 1) 
+	{
+	  result = black_is_mated;
+	}
+      else 
+	{
+	  result = white_is_mated;
+	}
+  }
+  else if (temp_score == -(INF-2) && !is_pondering)
+    {
+      if (white_to_move == 1)
+	{
+	  result = white_is_mated;
+	}
+      else
+	{
+	  result = black_is_mated;
+	}
+    }
+  
+  
   if (post && xb_mode && !is_pondering && 
 	result != black_is_mated &&
 	result != white_is_mated &&
@@ -1427,20 +1477,27 @@ move_s think (void) {
     {
       if (temp_score > 900000) 
 	{
-	  printf("tellics kibitz Mate in %d\n", (int)((1000000-temp_score)/2));
-	}
+	  if (Variant != Bughouse)
+	  {
+	    printf("tellics kibitz Mate in %d\n", (int)((1000000-temp_score)/2));
+	  }
+	  else
+	  {
+	    printf("tellics ptell Mate in %d, give him no more pieces.\n", (int)((1000000-temp_score)/2));
+	  }
+	 }
       
-      comp_to_coord (comp_move, postmove);
+      //comp_to_san (comp_move, postmove);
 
       if ((et > 0) && (Variant != Bughouse))
 	{
-	  printf("tellics whisper ply: %d score: %ld move: %s nodes: %ld qp: %.0f%% fh: %.0f%% pvs: %.0f%% pvsf: %.0f%% rs: %d time: %.2f nps: %ld\n",
-		 true_i_depth, temp_score, postmove, nodes, 
+	  printf("tellics whisper d%d %+.2f %s n: %ld qp: %.0f%% fh: %.0f%% dc: %d time: %.2f nps: %ld\n",
+		 true_i_depth, (float)temp_score/100.0, postpv, nodes, 
 		 (((float)qnodes*100)/((float)nodes+1)),
 		 ((float)FHF*100)/((float)FH+1),
-		 ((float)PVS*100)/((float)FULL+1),
-		 ((float)PVSF*100)/((float)PVS+1),
-		 rs,
+//		 ((float)PVS*100)/((float)FULL+1),
+//		 ((float)PVSF*100)/((float)PVS+1),
+		 drop_cuts,
 		 ((float)elapsed/100.), 
 		 (long)((float) nodes/(float) (et)));
 	}
@@ -1449,7 +1506,7 @@ move_s think (void) {
   
   if ((result != white_is_mated) 
       && (result != black_is_mated)
-      && (result != stalemate) && (true_i_depth >= 3) && pn_move.target == dummy.target)
+      && (result != stalemate) && (true_i_depth >= 3) && pn_move.target == dummy.target && !is_pondering)
     {
       if (bestmovenum == -1) DIE;
 
@@ -1477,7 +1534,7 @@ move_s think (void) {
   else if ((temp_score > -60000) && (temp_score < -40000) && (Variant == Bughouse) && !partnerdead && pn_move.target == dummy.target)
     {
       must_sit = TRUE;
-      printf("tellics ptell I'll have to sit...(piece)\n");
+      printf("tellics ptell I'll have to sit...(lose piece that mates you)\n");
     }
 
   return comp_move;

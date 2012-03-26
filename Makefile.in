@@ -63,9 +63,9 @@ PACKAGE = @PACKAGE@
 VERSION = @VERSION@
 
 bin_PROGRAMS = sjeng
-sjeng_SOURCES = attacks.c crazy.c epd.c learn.c partner.c seval.c                 ttable.c book.c ecache.c eval.c moves.c search.c                 sjeng.c utils.c newbook.c proof.c neval.c 		protos.h extvars.h sjeng.h
+sjeng_SOURCES = attacks.c crazy.c epd.c learn.c partner.c seval.c                 ttable.c book.c ecache.c eval.c moves.c search.c                 sjeng.c utils.c newbook.c proof.c neval.c rcfile.c 		protos.h extvars.h sjeng.h
 
-EXTRA_DIST = TODO NEWS ChangeLog COPYING BUGS THANKS blob2.c
+EXTRA_DIST = TODO NEWS ChangeLog COPYING BUGS THANKS blob2.c sjeng.rc
 SUBDIRS = books tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -80,7 +80,7 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 sjeng_OBJECTS =  attacks.o crazy.o epd.o learn.o partner.o seval.o \
 ttable.o book.o ecache.o eval.o moves.o search.o sjeng.o utils.o \
-newbook.o proof.o neval.o
+newbook.o proof.o neval.o rcfile.o
 sjeng_LDADD = $(LDADD)
 sjeng_DEPENDENCIES = 
 sjeng_LDFLAGS = 
@@ -353,6 +353,7 @@ neval.o: neval.c sjeng.h config.h extvars.h protos.h
 newbook.o: newbook.c sjeng.h config.h protos.h extvars.h
 partner.o: partner.c sjeng.h config.h protos.h extvars.h
 proof.o: proof.c sjeng.h config.h extvars.h protos.h
+rcfile.o: rcfile.c sjeng.h config.h protos.h extvars.h
 search.o: search.c sjeng.h config.h extvars.h protos.h
 seval.o: seval.c sjeng.h config.h extvars.h protos.h
 sjeng.o: sjeng.c sjeng.h config.h protos.h extvars.h
