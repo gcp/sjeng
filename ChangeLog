@@ -1,0 +1,8 @@
+2000-04-12  Gian-Carlo Pascutto  <gcp@users.sourceforge.net>
+
+	* Released 7.0
+
+	* Added/renamed files to comply with GNU standards (NEWS,BUGS,...)
+
+	* Added automake/autoconf/autoheader/etc... support
+

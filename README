@@ -1,0 +1,196 @@
+What is Sjeng ?
+---------------
+
+Sjeng is a chessprogram that plays the crazyhouse and bughouse
+variants. In addition to that, it can also play normal chess
+and is fully compatible with the standard XBoard/WinBoard 
+protocol.
+
+Technically, Sjeng is a highly advanced alpha-beta searcher, 
+using modern techniques like history and killer moves, 
+transposition tables, internal interative deepening, MVA/LVV
+move ordering, and search enhancements like selective
+extensions, Dynamic Principal Variation Search, Adaptive
+nullmove pruning, Extended Futility Pruning and Limited 
+Razoring. Sjeng can use an opening book and learns from
+the games it plays.
+
+
+How do I get it to work ?
+-------------------------
+
+ Building it
+ -----------
+
+    GNU/Linux, FreeBSD, other Un*x variants:
+    ----------------------------------------
+ 
+    Building Sjeng should be as simple as:
+
+    ./configure
+    make
+    (su to root)
+    make install
+ 
+    If you want to squeeze the last bit of
+    performance out of Sjeng, try this:
+
+    ./configure
+    cat *.c > blob.c
+    gcc -O9 -mpentiumpro -funroll-loops -s -o sjeng blob.c
+
+    If you do not have an x86 machine, or an older version
+    of gcc that doesn't recognize the '-mpentiumpro' flag,
+    you can safely remove it.
+
+    Windows
+    -------
+
+    I have succesfully compiled older versions of Sjeng with
+    Microsoft Visual C++. Newer versions should work too,
+    although they are not as well tested. 
+
+    You will have to create a config.h file which contains
+    
+    #define HAVE_SYS_TIMEB_H
+    #define HAVE_FTIME
+    #define VERSION "7.0"
+
+    Alternatively you can use the Cygnus utilities. I have
+    never used them myself so I cannot help you there, but
+    you will probably have little or no trouble compiling
+    Sjeng with them.
+ 
+ The opening books
+ -----------------
+
+ Copy the files zh.opn and normal.opn from the books directory
+ to the directory from where you will be running Sjeng. Next,
+ copy the zh.opn file to bug.opn. It is not yet recommended to
+ use the bug.opn file from the books directory.
+
+ It is important that you keep starting Sjeng from the same 
+ directory, because otherwise it will not be able to find its 
+ opening books and it will not learn from the games it plays.
+
+ Getting an interface
+ --------------------
+
+ You can start Sjeng now by typing 'sjeng', but you will probably
+ find the text-based interface unpleasant.
+
+ The recommended interface for playing with Sjeng is 
+ WinBoard/XBoard, by Tim Mann.
+
+ http://www.research.digital.com/SRC/personal/mann/xboard.html
+
+ Unfortunately WinBoard/XBoard does not provide any option to
+ play bughouse or crazyhouse, only standard chess. The Zippy
+ interface (the part that connects to the chess servers) built 
+ into WinBoard/XBoard *does* support bughouse and crazyhouse though.
+
+ Vassili Sukharev told me he was extending his bughouse-database
+ program to work with Sjeng. His homepage is at:
+
+ http://www.cs.washington.edu/homes/vassili/ 
+
+ (at the moment of this writing no support was available yet)
+ 
+Tuning Sjeng
+------------
+
+In the file ttable.c, you can change TTSIZE from 500000
+to a higher number. This will improve performance, as 
+long as your system does not have to swap to disk because
+of it.
+
+If you use Sjeng to play bughouse, you can do the same
+with ECACHESIZE in ecache.c. This is not so imporant
+as TTSIZE is.
+
+
+Getting more info
+-----------------
+
+For more info about Sjeng, you can visit the homepage
+
+http://sjeng.sourceforge.net/
+
+and the project homepage:
+
+http://sourceforge.net/project/?group_id=4560
+
+The project homepage allows you to browse the public
+forums, access the mailinglists, submit bugs etc... 
+
+Visiting it is recommended, especially if you are
+interested in the development of Sjeng. If you are
+interested in improving Sjeng, send me a mail at
+
+gcp@users.sourceforge.net
+
+For general questions about the usage of Sjeng, subscribe
+to the users mailinglist via the following link:
+
+http://lists.sourceforge.net/mailman/listinfo/sjeng-users
+
+
+Reporting bugs
+--------------
+
+You can either use the bug-tracker on the project
+homepage (recommended), or send email to
+
+sjeng-devel@lists.sourceforge.net
+
+Please try to provide an accurate description of the 
+problem and, if possible, how to reproduce it.
+
+
+New versions
+------------
+
+New versions of Sjeng which contain bugfixes and new
+features are released from time to time. If you want
+to be notified of new releases, subscribe to the 
+sjeng-announce mailinglist via the following page:
+
+http://lists.sourceforge.net/mailman/listinfo/sjeng-announce
+
+
+What is bughouse ?
+------------------
+
+Bughouse is a form of chess which is played with 2 teams, 
+each consisting of 2 players. Each player plays his opponent
+on a seperate board. If a piece is captured, the capturing 
+player can pass it on to his partner, who can then drop the 
+piece into his game and use it.
+
+If you have never played bughouse before, you are really
+missing out on something. Try it, you'll like it.
+
+for a more complete description of the rules:
+
+http://matador.unige.ch/nabla/Bug/rules.html
+
+
+What is crazyhouse ?
+--------------------
+
+Crazyhouse is similar to bughouse, but is played
+with only 2 players, on 1 board.
+
+
+Where can I play this game ?
+----------------------------
+
+The most common place to play bughouse is the Free Internet
+Chess Server (FICS). Most important chess servers also offer
+it, like the Internet Chess Club. 
+
+http://www.freechess.org
+http://www.chessclub.com
+
+Or even better, gather a few friends, 2 chessboards, 2 clocks,
+some beer, and have fun beating each other ;)
