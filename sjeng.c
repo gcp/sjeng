@@ -730,6 +730,7 @@ int main (int argc, char *argv[]) {
 	    printf("Move number : %d\n", move_number);
 	if (move_number > 0)
 	  {
+            ply = 1;
 	    path_x[0] = game_history_x[--move_number];
 	    unmake(&game_history[move_number], 0);
 	    reset_piece_square();
@@ -739,10 +740,12 @@ int main (int argc, char *argv[]) {
       else if (!strncmp (input, "remove", 5)) {
 	if (move_number > 1)
 	  {
+            ply = 1;
 	    path_x[0] = game_history_x[--move_number];
 	    unmake(&game_history[move_number], 0);
 	    reset_piece_square();
 
+            ply = 1;
 	    path_x[0] = game_history_x[--move_number];
 	    unmake(&game_history[move_number], 0);
 	    reset_piece_square();
