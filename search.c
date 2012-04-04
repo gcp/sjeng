@@ -823,8 +823,8 @@ long int search (int alpha, int beta, int depth, int is_null) {
 	  if (!afterincheck && ((Variant == Normal) 
 		             || (Variant == Suicide) 
 			     || (Variant == Losers)) && (depth < 3) &&
-	      (((board[moves[i].target] == wpawn) && (rank(moves[i].target) >= 6)
-		|| ((board[moves[i].target] == bpawn) && (rank(moves[i].target) <= 3)))))
+	      (((board[moves[i].target] == wpawn) && (rank(moves[i].target) >= 6))
+		|| ((board[moves[i].target] == bpawn) && (rank(moves[i].target) <= 3))))
 	    {
 	      extend++;
 	    };
